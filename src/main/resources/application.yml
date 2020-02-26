@@ -1,0 +1,5 @@
+logging:
+  file:
+    name: trader-logging.log
+  pattern:
+    level: debug
