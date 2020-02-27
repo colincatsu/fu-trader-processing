@@ -2,8 +2,7 @@ package com.future.trader.service;
 
 
 import com.alibaba.fastjson.JSON;
-import com.future.trader.api.OrderLibrary;
-import com.future.trader.api.SymbolInfoLibrary;
+import com.future.trader.api.*;
 import com.future.trader.bean.TradeRecordInfo;
 import com.future.trader.common.exception.BusinessException;
 import com.future.trader.common.exception.DataConflictException;
@@ -17,9 +16,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class OrderInfoService {
@@ -243,5 +245,68 @@ public class OrderInfoService {
                 + "trade : " + symbolInfo.trade);
 
         System.out.println();
+    }
+
+    /**
+     * 订单交易随逻辑
+     * @param clientId
+     * @param tradeRecord
+     */
+    public boolean orderTrade(int clientId, OrderLibrary.TradeRecord tradeRecord) {
+
+        if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+            log.info("connect borker false, clientId error!");
+            throw new BusinessException("connect borker false, clientId error!");
+        }
+
+        boolean isTrade=true;
+        OrderLibrary.TradeRecord.ByReference orderSend = new OrderLibrary.TradeRecord.ByReference();
+        long time = LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().getEpochSecond();
+        QuoteLibrary.QuoteEventInfo.ByReference quoteInfo = new QuoteLibrary.QuoteEventInfo.ByReference();
+        //循环获取行情信息，直到获取到最新的行情信息
+        while (!QuoteLibrary.library.MT4API_GetQuote(clientId, new String(tradeRecord.symbol), quoteInfo)) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);
+            } catch (Exception e) {
+                log.error(e.getMessage(),e);
+                e.printStackTrace();
+            }
+        }
+
+        if (QuoteLibrary.library.MT4API_GetQuote(clientId, new String(tradeRecord.symbol), quoteInfo)) {
+            log.info("行情最新报价：" + quoteInfo.fAsk);
+            log.info("跟单数据："
+                    + "clientId : " + clientId + ","
+                    + "symbol : " + new String(tradeRecord.symbol).trim() + ","
+                    + "volume : " + tradeRecord.volume + ","
+                    + "stoploss : " + tradeRecord.stoploss + ","
+                    + "takeprofit : " + tradeRecord.takeprofit + ","
+                    + "cmd : " + tradeRecord.cmd + ","
+                    + "magic : " + tradeRecord.magic + ","
+                    + "fAsk : " + quoteInfo.fAsk + ","
+                    + "nDigits : " + quoteInfo.nDigits + ","
+            );
+            isTrade = TraderLibrary.library.MT4API_OrderSend(clientId, new String(tradeRecord.symbol).trim(),
+                    (byte) tradeRecord.cmd, tradeRecord.volume,
+                    quoteInfo.fAsk, quoteInfo.nDigits, tradeRecord.stoploss, tradeRecord.takeprofit,
+                    "", tradeRecord.magic, (int) time + 24 * 60 * 60, orderSend);
+            if (isTrade) {
+                log.info("跟单信息："
+                        + "order : " + orderSend.order + ","
+                        + "login : " + orderSend.login + ","
+                        + "symbol : " + new String(orderSend.symbol) + ","
+                        + "digits : " + orderSend.digits + ","
+                        + "volume : " + orderSend.volume + ","
+                        + "open_time : " + orderSend.open_time + ","
+                        + "open_price : " + orderSend.open_price + ","
+                        + "state : " + orderSend.state + ","
+                        + "stoploss : " + orderSend.stoploss + ","
+                        + "takeprofit : " + orderSend.takeprofit + ","
+                );
+            } else {
+                TradeUtil.printError(clientId);
+            }
+        }
+        return isTrade;
     }
 }

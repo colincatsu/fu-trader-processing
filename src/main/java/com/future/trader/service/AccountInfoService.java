@@ -1,22 +1,22 @@
 package com.future.trader.service;
 
 
-import com.future.trader.api.AccountInfoLibrary;
-import com.future.trader.api.QuoteLibrary;
-import com.future.trader.api.ServerInfoLibrary;
-import com.future.trader.api.TraderLibrary;
+import com.future.trader.api.*;
 import com.future.trader.common.exception.BusinessException;
 import com.future.trader.service.impl.OrderNotifyCallbackImpl;
 import com.future.trader.service.impl.OrderUpdateCallbackImpl;
 import com.future.trader.service.impl.QuoteCallbackImpl;
+import com.future.trader.util.RedisManager;
 import com.future.trader.util.TradeUtil;
 import com.sun.jna.ptr.DoubleByReference;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.ShortByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -26,6 +26,13 @@ public class AccountInfoService {
 
     Logger log= LoggerFactory.getLogger(AccountInfoService.class);
 
+    @Autowired
+    RedisManager redisManager;
+    @Resource
+    OrderInfoService orderInfoService;
+    @Autowired
+    OrderUpdateCallback orderUpdateCallbackImpl;
+
     /**
      * 设置信号源账户 监听
      * @param brokerName
@@ -33,7 +40,7 @@ public class AccountInfoService {
      * @param password
      * @return
      */
-    public boolean setSignalMonitor(String brokerName,int username,String password){
+    public int setSignalMonitor(String brokerName,int username,String password){
         int clientId = TradeUtil.getUserConnect(brokerName,username,password);
         if(clientId==0){
             // 初始化失败！
@@ -41,7 +48,58 @@ public class AccountInfoService {
             throw new BusinessException("client init error !");
         }
         log.info("set signal monitor account: brokerName"+brokerName+",username"+username);
-        return setOrderUpdateEventHandler(clientId);
+        setOrderUpdateEventHandler(clientId);
+        return clientId;
+    }
+
+    /**
+     * 设置信号源账户 监听
+     * @param clientId
+     * @return
+     */
+    public int setAccountMonitor(int clientId){
+        boolean login = ConnectLibrary.library.MT4API_Connect(clientId);
+        if(!login){
+            log.error("clientId connnect error !");
+            throw new BusinessException("clientId connnect error !");
+        }
+        log.info("set signal monitor account: clientId"+clientId);
+        setOrderUpdateEventHandler(clientId);
+        return clientId;
+    }
+
+    /**
+     * 链接账户
+     * @param brokerName
+     * @param username
+     * @param password
+     * @return
+     */
+    public int setAccountConnnect(String brokerName,int username,String password){
+        int clientId = TradeUtil.getUserConnect(brokerName,username,password);
+        if(clientId==0){
+            // 初始化失败！
+            log.error("client init error !");
+            throw new BusinessException("client init error !");
+        }
+        redisManager.hset("account-connect-clientId",String.valueOf(username),clientId);
+        log.info("set account connnect: brokerName"+brokerName+",username"+username);
+        return clientId;
+    }
+
+    /**
+     * 断开链接账户
+     * @param clientId
+     * @return
+     */
+    public boolean setAccountDisConnnect(int clientId){
+        if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+            log.info("connect borker success!");
+            return true;
+        }else {
+            InstanceLibrary.library.MT4API_Destory(clientId);
+        }
+        return false;
     }
 
     /**
@@ -159,8 +217,10 @@ public class AccountInfoService {
         if(clientId==0){
             return false;
         }
-        OrderUpdateCallback updateCallback = new OrderUpdateCallbackImpl();
-        TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, updateCallback, clientId);
+        //TODO /*事先查询下在仓订单 不然监听会失败*/
+//        orderInfoService.obtainOpenOrderInfo(clientId);
+//        OrderUpdateCallback updateCallback = new OrderUpdateCallbackImpl();
+        TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, orderUpdateCallbackImpl, clientId);
         log.info("success set signal mode, clientId: "+clientId);
         return true;
     }
