@@ -3,10 +3,11 @@ package com.future.trader.service;
 
 import com.future.trader.api.*;
 import com.future.trader.common.exception.BusinessException;
+import com.future.trader.common.exception.DataConflictException;
 import com.future.trader.service.impl.OrderNotifyCallbackImpl;
-import com.future.trader.service.impl.OrderUpdateCallbackImpl;
 import com.future.trader.service.impl.QuoteCallbackImpl;
 import com.future.trader.util.RedisManager;
+import com.future.trader.util.StringUtils;
 import com.future.trader.util.TradeUtil;
 import com.sun.jna.ptr.DoubleByReference;
 import com.sun.jna.ptr.IntByReference;
@@ -28,10 +29,12 @@ public class AccountInfoService {
 
     @Autowired
     RedisManager redisManager;
-    @Resource
-    OrderInfoService orderInfoService;
     @Autowired
     OrderUpdateCallback orderUpdateCallbackImpl;
+    @Autowired
+    OrderNotifyCallback orderNotifyCallbackImpl;
+    @Resource
+    ConnectionService connectionService;
 
     /**
      * 设置信号源账户 监听
@@ -41,14 +44,20 @@ public class AccountInfoService {
      * @return
      */
     public int setSignalMonitor(String brokerName,int username,String password){
-        int clientId = TradeUtil.getUserConnect(brokerName,username,password);
+        if(StringUtils.isEmpty(brokerName)||StringUtils.isEmpty(password)||username==0){
+            log.error("设置信号源账户 监听,传入传入参数为空！");
+            throw new DataConflictException("设置信号源账户 监听,传入传入参数为空！");
+        }
+        int clientId = connectionService.getUserConnectWithConnectCallback(brokerName,username,password);
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
             throw new BusinessException("client init error !");
         }
-        log.info("set signal monitor account: brokerName"+brokerName+",username"+username);
+        /*设置信号源监听*/
         setOrderUpdateEventHandler(clientId);
+        log.info("set signal monitor account: brokerName:"+brokerName+",username:"+username);
+
         return clientId;
     }
 
@@ -63,8 +72,10 @@ public class AccountInfoService {
             log.error("clientId connnect error !");
             throw new BusinessException("clientId connnect error !");
         }
+        /*设置订单结果回调*/
+        OrderNotifyCallback notifyCallback = new OrderNotifyCallbackImpl();
+        TraderLibrary.library.MT4API_SetOrderNotifyEventHandler(clientId, notifyCallback, clientId);
         log.info("set signal monitor account: clientId"+clientId);
-        setOrderUpdateEventHandler(clientId);
         return clientId;
     }
 
@@ -76,14 +87,18 @@ public class AccountInfoService {
      * @return
      */
     public int setAccountConnnect(String brokerName,int username,String password){
-        int clientId = TradeUtil.getUserConnect(brokerName,username,password);
+//        int clientId = TradeUtil.getUserConnect(brokerName,username,password);
+        int clientId = connectionService.getUserConnectWithConnectCallback(brokerName,username,password);
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
             throw new BusinessException("client init error !");
         }
+        /*设置订单结果回调*/
+        TraderLibrary.library.MT4API_SetOrderNotifyEventHandler(clientId, orderNotifyCallbackImpl, clientId);
+
         redisManager.hset("account-connect-clientId",String.valueOf(username),clientId);
-        log.info("set account connnect: brokerName"+brokerName+",username"+username);
+        log.info("set account connnect: brokerName:"+brokerName+",username:"+username);
         return clientId;
     }
 
@@ -94,12 +109,19 @@ public class AccountInfoService {
      */
     public boolean setAccountDisConnnect(int clientId){
         if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
-            log.info("connect borker success!");
-            return true;
+            try {
+                InstanceLibrary.library.MT4API_Destory(clientId);
+                log.info("connection break success!");
+                return true;
+            }catch (Exception e){
+                log.error("connection break fail!");
+                TradeUtil.printError(clientId);
+                return false;
+            }
         }else {
-            InstanceLibrary.library.MT4API_Destory(clientId);
+            log.info("connection already break!");
         }
-        return false;
+        return true;
     }
 
     /**

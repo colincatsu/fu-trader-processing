@@ -2,6 +2,7 @@ package com.future.trader.controller;
 
 
 import com.future.trader.bean.TradeRecordInfo;
+import com.future.trader.common.exception.DataConflictException;
 import com.future.trader.common.helper.PageInfoHelper;
 import com.future.trader.common.result.RequestParams;
 import com.future.trader.service.OrderInfoService;
@@ -41,5 +42,41 @@ public class OrderController {
         Map conditionMap = requestParams.getParams();
         PageInfoHelper helper = requestParams.getPageInfoHelper();
         return orderInfoService.getUserOpenOrders(conditionMap,helper);
+    }
+
+    //关闭订单
+    @RequestMapping(value= "/sendOrderCloseAsync",method= RequestMethod.POST)
+    public @ResponseBody boolean sendOrderCloseAsync(@RequestBody RequestParams<Map> requestParams){
+        // 获取请求参数
+        Map conditionMap = requestParams.getParams();
+        if(conditionMap==null||conditionMap.get("clientId")==null
+                ||conditionMap.get("orderId")==null||conditionMap.get("symbol")==null||conditionMap.get("volume")==null){
+            log.error("sendrderCloseAsync null params!");
+            throw new DataConflictException("sendrderCloseAsync null params!");
+        }
+        int clientId=Integer.parseInt(String.valueOf(conditionMap.get("clientId")));
+        int orderId=Integer.parseInt(String.valueOf(conditionMap.get("orderId")));
+        String symbol= String.valueOf(conditionMap.get("symbol"));
+        double volume=Double.valueOf(String.valueOf(conditionMap.get("volume")));
+
+        return orderInfoService.sendOrderCloseAsync(clientId,orderId,symbol,volume);
+    }
+
+    //关闭订单
+    @RequestMapping(value= "/sendOrderClose",method= RequestMethod.POST)
+    public @ResponseBody boolean sendOrderClose(@RequestBody RequestParams<Map> requestParams){
+        // 获取请求参数
+        Map conditionMap = requestParams.getParams();
+        if(conditionMap==null||conditionMap.get("clientId")==null
+                ||conditionMap.get("orderId")==null||conditionMap.get("symbol")==null||conditionMap.get("volume")==null){
+            log.error("sendrderCloseAsync null params!");
+            throw new DataConflictException("sendrderCloseAsync null params!");
+        }
+        int clientId=Integer.parseInt(String.valueOf(conditionMap.get("clientId")));
+        int orderId=Integer.parseInt(String.valueOf(conditionMap.get("orderId")));
+        String symbol= String.valueOf(conditionMap.get("symbol"));
+        double volume=Double.valueOf(String.valueOf(conditionMap.get("volume")));
+
+        return orderInfoService.sendOrderClose(clientId,orderId,symbol,volume);
     }
 }

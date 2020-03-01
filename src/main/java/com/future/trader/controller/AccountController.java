@@ -72,4 +72,19 @@ public class AccountController {
 
         return accountInfoService.setAccountConnnect(brokerName,username,password);
     }
+
+    //断开链接账户
+    @RequestMapping(value= "/setAccountDisConnnect",method= RequestMethod.POST)
+    public @ResponseBody boolean setAccountDisConnnect(@RequestBody RequestParams<Map> requestParams){
+        // 获取请求参数
+        Map conditionMap = requestParams.getParams();
+
+        if(conditionMap==null||conditionMap.get("clientId")==null){
+            log.error("getUserCloseOrders null params!");
+            throw new DataConflictException("getUserCloseOrders null params!");
+        }
+        int clientId=Integer.parseInt(String.valueOf(conditionMap.get("clientId")));
+
+        return accountInfoService.setAccountDisConnnect(clientId);
+    }
 }

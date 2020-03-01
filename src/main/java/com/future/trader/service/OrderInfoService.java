@@ -7,15 +7,15 @@ import com.future.trader.bean.TradeRecordInfo;
 import com.future.trader.common.exception.BusinessException;
 import com.future.trader.common.exception.DataConflictException;
 import com.future.trader.common.helper.PageInfoHelper;
+import com.future.trader.util.StringUtils;
 import com.future.trader.util.TradeUtil;
-import com.github.pagehelper.Page;
 import com.github.pagehelper.PageInfo;
 import com.sun.jna.ptr.IntByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -27,6 +27,9 @@ import java.util.concurrent.TimeUnit;
 public class OrderInfoService {
 
     Logger log= LoggerFactory.getLogger(OrderInfoService.class);
+
+    @Resource
+    ConnectionService connectionService;
 
     /**
      * 根据条件查询用户历史订单
@@ -54,13 +57,14 @@ public class OrderInfoService {
         int username = 812320;
         String password = "cxzn666666";*/
 
-        int clientId = TradeUtil.getUserConnect(brokerName,username,password);
+        int clientId = connectionService.getUserConnect(brokerName,username,password);
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
             throw new BusinessException("client init error !");
         }
         List<TradeRecordInfo> list=obtainCloseOrderInfo(clientId);
+        connectionService.disConnect(clientId);
 
         return new PageInfo<TradeRecordInfo>(list);
     }
@@ -91,16 +95,59 @@ public class OrderInfoService {
         int username = 812320;
         String password = "cxzn666666";*/
 
-        int clientId = TradeUtil.getUserConnect(brokerName,username,password);
+        int clientId = connectionService.getUserConnect(brokerName,username,password);
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
             throw new BusinessException("client init error !");
         }
         List<TradeRecordInfo> list=obtainOpenOrderInfo(clientId);
+        connectionService.disConnect(clientId);
 
         return new PageInfo<TradeRecordInfo>(list);
     }
+
+    /**
+     * 获取最新open订单
+     * @param clientId
+     */
+    public TradeRecordInfo getLastFollowOpenOrder(int clientId){
+        if(clientId==0){
+            return null;
+        }
+        List<TradeRecordInfo> list=obtainOpenOrderInfo(clientId);
+        if(list==null||list.size()==0){
+            return null;
+        }
+        TradeRecordInfo lastOrder=new TradeRecordInfo();
+        for(TradeRecordInfo order:list){
+            if(lastOrder.getOrder()<order.getOrder()&&order.getMagic()==999){
+                lastOrder=order;
+            }
+        }
+        return lastOrder;
+    }
+
+    /**
+     * 获取最新close订单
+     */
+    public TradeRecordInfo getLastFollowCloseOrder(int clientId){
+        if(clientId==0){
+            return null;
+        }
+        List<TradeRecordInfo> list=obtainCloseOrderInfo(clientId);
+        if(list==null||list.size()==0){
+            return null;
+        }
+        TradeRecordInfo lastOrder=new TradeRecordInfo();
+        for(TradeRecordInfo order:list){
+            if(lastOrder.getOrder()<order.getOrder()&&order.getMagic()==999){
+                lastOrder=order;
+            }
+        }
+        return lastOrder;
+    }
+
 
     /**
      * 获取历史订单信息
@@ -115,6 +162,7 @@ public class OrderInfoService {
         if(closeCountInt==0){
             return null;
         }
+        closeCountInt=1;
 
         List<TradeRecordInfo> recordInfoList=new ArrayList<>();
         IntByReference closeCount = new IntByReference(closeCountInt);
@@ -308,5 +356,92 @@ public class OrderInfoService {
             }
         }
         return isTrade;
+    }
+
+    /**
+     * 关闭订单 异步
+     * @param clientId
+     * @param orderId
+     * @param symbol
+     * @param volume
+     * @return
+     */
+    public boolean sendOrderCloseAsync(int clientId,int orderId,String symbol,double volume){
+
+        if(clientId==0||orderId==0||volume==0|| StringUtils.isEmpty(symbol)){
+            log.info("关闭订单 异步, 参数为空!");
+            throw new BusinessException("关闭订单 异步, 参数为空!");
+        }
+
+        if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+            log.info("connect borker false, clientId error!");
+            throw new BusinessException("connect borker false, clientId error!");
+        }
+        QuoteLibrary.QuoteEventInfo.ByReference quoteInfo = new QuoteLibrary.QuoteEventInfo.ByReference();
+        //循环获取行情信息，直到获取到最新的行情信息
+        while (!QuoteLibrary.library.MT4API_GetQuote(clientId, symbol, quoteInfo)) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);
+            } catch (Exception e) {
+                log.error(e.getMessage(),e);
+                throw new BusinessException(e);
+            }
+        }
+
+        if(TraderLibrary.library.MT4API_IsTradeAllowed(clientId)){
+            int isSend= TraderLibrary.library.MT4API_OrderCloseAsync(clientId,symbol,orderId,
+                    volume,quoteInfo.fAsk,40);
+            if (isSend>0) {
+                log.info("order close success! isSend,orderid:"+orderId);
+            } else {
+                TradeUtil.printError(clientId);
+                throw new BusinessException("order close fail!");
+            }
+        }
+        return true;
+    }
+
+
+    /**
+     * 关闭订单
+     * @param clientId
+     * @param orderId
+     * @param symbol
+     * @param volume
+     * @return
+     */
+    public boolean sendOrderClose(int clientId,int orderId,String symbol,double volume){
+
+        if(clientId==0||orderId==0||volume==0|| StringUtils.isEmpty(symbol)){
+            log.info("关闭订单 异步, 参数为空!");
+            throw new BusinessException("关闭订单 异步, 参数为空!");
+        }
+
+        if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+            log.info("connect borker false, clientId error!");
+            throw new BusinessException("connect borker false, clientId error!");
+        }
+        QuoteLibrary.QuoteEventInfo.ByReference quoteInfo = new QuoteLibrary.QuoteEventInfo.ByReference();
+        //循环获取行情信息，直到获取到最新的行情信息
+        while (!QuoteLibrary.library.MT4API_GetQuote(clientId, symbol, quoteInfo)) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);
+            } catch (Exception e) {
+                log.error(e.getMessage(),e);
+                throw new BusinessException(e);
+            }
+        }
+        OrderLibrary.TradeRecord.ByReference orderSend = new OrderLibrary.TradeRecord.ByReference();
+        if(TraderLibrary.library.MT4API_IsTradeAllowed(clientId)){
+            boolean isSend= TraderLibrary.library.MT4API_OrderClose(clientId,symbol,orderId,
+                    volume,quoteInfo.fAsk,40,orderSend);
+            if (isSend) {
+                log.info("order close success! isSend,orderid:"+orderId);
+            } else {
+                TradeUtil.printError(clientId);
+                throw new BusinessException("order close fail!");
+            }
+        }
+        return true;
     }
 }

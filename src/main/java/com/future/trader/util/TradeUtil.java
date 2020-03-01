@@ -4,6 +4,7 @@ import com.future.trader.api.ConnectLibrary;
 import com.future.trader.api.InstanceLibrary;
 import com.future.trader.api.OrderLibrary;
 import com.future.trader.bean.TradeRecordInfo;
+import com.future.trader.service.DisConnectCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,63 +28,7 @@ public class TradeUtil {
         log.error(new String(errorDesc));
     }
 
-    /**
-     * 获取连接
-     * @param brokerName
-     * @param username
-     * @param password
-     * @return
-     */
-    public static int getUserConnect(String brokerName,int username,String password){
-        int clientId = InstanceLibrary.library.MT4API_Create();
-        log.info("clientId : " + clientId);
-        if (clientId > 0) {
-            String srvName =    "srv\\"+brokerName+".srv";
-            boolean init = ConnectLibrary.library.MT4API_InitBySrvFile(clientId,srvName,username,password,
-                    0,0);
-            log.info("MT4API_Init : " + init);
-            if (init) {
-                boolean login = ConnectLibrary.library.MT4API_Connect(clientId);
-                log.info("MT4API_Connect login : " + login);
-                if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
-                    log.info("connect borker success!");
-                    return clientId;
-                }
-            }
-            printError(clientId);
-        }
-        return 0;
-    }
 
-    /**
-     * 获取连接
-     * @param brokerName
-     * @param username
-     * @param password
-     * @param nThreadHisTimeFrom 初始获取历史订单的开始时间
-     * @param nThreadHisTimeTo   初始获取历史订单的结束时间
-     * @return
-     */
-    public static int getUserConnect(String brokerName,int username,String password,int nThreadHisTimeFrom,int nThreadHisTimeTo){
-        int clientId = InstanceLibrary.library.MT4API_Create();
-        log.info("clientId : " + clientId);
-        if (clientId > 0) {
-            String srvName =    "srv\\"+brokerName+".srv";
-            boolean init = ConnectLibrary.library.MT4API_InitBySrvFile(clientId,srvName,username,password,
-                    nThreadHisTimeFrom,nThreadHisTimeTo);
-            log.info("MT4API_Init : " + init);
-            if (init) {
-                boolean login = ConnectLibrary.library.MT4API_Connect(clientId);
-                log.info("MT4API_Connect login : " + login);
-                if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
-                    log.info("connect borker success!");
-                    return clientId;
-                }
-            }
-            printError(clientId);
-        }
-        return 0;
-    }
 
     /**
      * 转换订单
