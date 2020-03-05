@@ -1,7 +1,9 @@
 package com.future.trader.service;
 
 
+import com.alibaba.fastjson.JSONObject;
 import com.future.trader.api.*;
+import com.future.trader.common.constants.RedisConstant;
 import com.future.trader.common.exception.BusinessException;
 import com.future.trader.common.exception.DataConflictException;
 import com.future.trader.service.impl.OrderNotifyCallbackImpl;
@@ -16,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
@@ -30,7 +33,9 @@ public class AccountInfoService {
     @Autowired
     RedisManager redisManager;
     @Autowired
-    OrderUpdateCallback orderUpdateCallbackImpl;
+    SignalOrderUpdateCallback signalOrderUpdateCallbackImpl;
+    @Autowired
+    FollowOrderUpdateCallback followOrderUpdateCallbackImpl;
     @Autowired
     OrderNotifyCallback orderNotifyCallbackImpl;
     @Resource
@@ -55,7 +60,7 @@ public class AccountInfoService {
             throw new BusinessException("client init error !");
         }
         /*设置信号源监听*/
-        setOrderUpdateEventHandler(clientId);
+        TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, signalOrderUpdateCallbackImpl, clientId);
         log.info("set signal monitor account: brokerName:"+brokerName+",username:"+username);
 
         return clientId;
@@ -72,11 +77,31 @@ public class AccountInfoService {
             log.error("clientId connnect error !");
             throw new BusinessException("clientId connnect error !");
         }
-        /*设置订单结果回调*/
-        OrderNotifyCallback notifyCallback = new OrderNotifyCallbackImpl();
-        TraderLibrary.library.MT4API_SetOrderNotifyEventHandler(clientId, notifyCallback, clientId);
+        /*设置跟随订单更新回调*/
+        TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, followOrderUpdateCallbackImpl, clientId);
         log.info("set signal monitor account: clientId"+clientId);
         return clientId;
+    }
+
+    /**
+     * 设置跟单关系
+     * @param signalName
+     * @param followName
+     * @return
+     */
+    public boolean setAccountFollowRelation(int signalName,int followName){
+        if(signalName<=0||followName<=0){
+            log.error("设置跟单关系,参数错误！ signalName:"+signalName+",+"+followName);
+        }
+        Object object= redisManager.hget(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(signalName));
+        JSONObject followJson=new JSONObject();
+        if(!ObjectUtils.isEmpty(object)){
+            followJson=(JSONObject)object;
+        }
+        followJson.put(String.valueOf(followName),followName);
+        /*将跟单关系保存至redis*/
+        redisManager.hset(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(signalName),followJson);
+        return true;
     }
 
     /**
@@ -87,7 +112,6 @@ public class AccountInfoService {
      * @return
      */
     public int setAccountConnnect(String brokerName,int username,String password){
-//        int clientId = TradeUtil.getUserConnect(brokerName,username,password);
         int clientId = connectionService.getUserConnectWithConnectCallback(brokerName,username,password);
         if(clientId==0){
             // 初始化失败！
@@ -95,9 +119,13 @@ public class AccountInfoService {
             throw new BusinessException("client init error !");
         }
         /*设置订单结果回调*/
-        TraderLibrary.library.MT4API_SetOrderNotifyEventHandler(clientId, orderNotifyCallbackImpl, clientId);
+        /*TraderLibrary.library.MT4API_SetOrderNotifyEventHandler(clientId, orderNotifyCallbackImpl, clientId);*/
+        /*设置跟随订单更新回调*/
+        TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, followOrderUpdateCallbackImpl, clientId);
 
-        redisManager.hset("account-connect-clientId",String.valueOf(username),clientId);
+        String accountInfo=brokerName+","+username+","+password;
+        redisManager.hset(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username),clientId);
+        redisManager.hset(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId),accountInfo);
         log.info("set account connnect: brokerName:"+brokerName+",username:"+username);
         return clientId;
     }
@@ -111,6 +139,13 @@ public class AccountInfoService {
         if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
             try {
                 InstanceLibrary.library.MT4API_Destory(clientId);
+                Object accountInfo= redisManager.hget(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
+                if(ObjectUtils.isEmpty(accountInfo)){
+                    return true;
+                }
+                String[] accounts=String.valueOf(accountInfo).split(",");
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(accounts[1]));
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
                 log.info("connection break success!");
                 return true;
             }catch (Exception e){
@@ -242,7 +277,7 @@ public class AccountInfoService {
         //TODO /*事先查询下在仓订单 不然监听会失败*/
 //        orderInfoService.obtainOpenOrderInfo(clientId);
 //        OrderUpdateCallback updateCallback = new OrderUpdateCallbackImpl();
-        TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, orderUpdateCallbackImpl, clientId);
+        TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, signalOrderUpdateCallbackImpl, clientId);
         log.info("success set signal mode, clientId: "+clientId);
         return true;
     }

@@ -164,4 +164,65 @@ public interface OrderLibrary extends Library {
                     "timestamp", "api_data", "next"});
         }
     }
+
+    /**
+     * 订单信息结构体
+     */
+    class NotifyRecord extends Structure {
+        public static class ByReference extends TradeRecord implements Structure.ByReference{};
+        public static class ByValue extends TradeRecord implements  Structure.ByValue{};
+
+        public NotifyRecord() {
+        }
+
+        public NotifyRecord(Pointer pointer) {
+            super(pointer);
+        }
+
+        public int login;
+        public byte[] symbol = new byte[12];
+        public int digits;
+        public int cmd;
+        public int volume;
+        public int open_time;
+        public int state;
+        public double open_price;
+        public double stoploss;
+        public double takeprofit;
+        public int close_time;
+        public int gw_volume;
+        public int expiration;
+        public byte reason;
+        public byte[] conv_reserv = new byte[3];
+        public double[] conv_rates = new double[2];
+
+        public double commission;
+        public double commission_agent;
+        public double storage;
+        public double close_price;
+        public double profit;
+        public double taxes;
+        public int magic;
+        public byte[] comment = new byte[32];
+        public int gw_order;
+        public int activation;
+        public short gw_open_price;
+        public short gw_close_price;
+        public double margin_rate;
+        public int timestamp;
+        public int[] api_data = new int[4];
+
+        public ByReference next;
+
+        @Override
+        protected List<String> getFieldOrder() {
+            return Arrays.asList(new String[] {"login", "symbol", "digits", "cmd",
+                    "volume", "open_time", "state", "open_price", "stoploss",
+                    "takeprofit", "close_time", "gw_volume", "expiration", "reason",
+                    "conv_reserv", "conv_rates", "commission", "commission_agent", "storage",
+                    "close_price", "profit", "taxes", "magic", "comment",
+                    "gw_order", "activation", "gw_open_price", "gw_close_price", "margin_rate",
+                    "timestamp", "api_data", "next"});
+        }
+    }
 }

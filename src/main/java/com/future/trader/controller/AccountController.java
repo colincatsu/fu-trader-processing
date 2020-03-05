@@ -30,7 +30,7 @@ public class AccountController {
         if(conditionMap==null||conditionMap.get("brokerName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
             log.error("getUserCloseOrders null params!");
-            throw new DataConflictException("getUserCloseOrders null params!");
+            throw new DataConflictException("setSignalMonitor null params!");
         }
 
         String brokerName=String.valueOf(conditionMap.get("brokerName"));
@@ -47,7 +47,7 @@ public class AccountController {
         Map conditionMap = requestParams.getParams();
         if(conditionMap==null||conditionMap.get("clientId")==null){
             log.error("getUserCloseOrders null params!");
-            throw new DataConflictException("getUserCloseOrders null params!");
+            throw new DataConflictException("setAccountMonitor null params!");
         }
         int clientId=Integer.parseInt(String.valueOf(conditionMap.get("clientId")));
 
@@ -63,7 +63,7 @@ public class AccountController {
         if(conditionMap==null||conditionMap.get("brokerName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
             log.error("getUserCloseOrders null params!");
-            throw new DataConflictException("getUserCloseOrders null params!");
+            throw new DataConflictException("setAccountConnnect null params!");
         }
 
         String brokerName=String.valueOf(conditionMap.get("brokerName"));
@@ -81,10 +81,28 @@ public class AccountController {
 
         if(conditionMap==null||conditionMap.get("clientId")==null){
             log.error("getUserCloseOrders null params!");
-            throw new DataConflictException("getUserCloseOrders null params!");
+            throw new DataConflictException("setAccountDisConnnect null params!");
         }
         int clientId=Integer.parseInt(String.valueOf(conditionMap.get("clientId")));
 
         return accountInfoService.setAccountDisConnnect(clientId);
+    }
+
+    //设置账户跟随关系
+    @RequestMapping(value= "/setAccountFollowRelation",method= RequestMethod.POST)
+    public @ResponseBody boolean setAccountFollowRelation(@RequestBody RequestParams<Map> requestParams){
+        // 获取请求参数
+        Map conditionMap = requestParams.getParams();
+
+        if(conditionMap==null||conditionMap.get("followName")==null
+                ||conditionMap.get("signalName")==null){
+            log.error("getUserCloseOrders null params!");
+            throw new DataConflictException("setAccountFollowRelation null params!");
+        }
+
+        int followName=Integer.parseInt(String.valueOf(conditionMap.get("followName")));
+        int signalName=Integer.parseInt(String.valueOf(conditionMap.get("signalName")));
+
+        return accountInfoService.setAccountFollowRelation(signalName,followName);
     }
 }

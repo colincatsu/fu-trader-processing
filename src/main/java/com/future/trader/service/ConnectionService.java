@@ -42,7 +42,6 @@ public class ConnectionService {
                 log.info("MT4API_Connect login : " + login);
                 if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
                     log.info("connect borker success!");
-                    redisManager.hset(RedisConstant.H_CLIENT_INFO,String.valueOf(clientId),brokerName+","+username+","+password);
                     return clientId;
                 }
             }
@@ -87,7 +86,6 @@ public class ConnectionService {
                 log.info("MT4API_Connect login : " + login);
                 if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
                     log.info("connect borker success!");
-                    redisManager.hset(RedisConstant.H_CLIENT_INFO,String.valueOf(clientId),brokerName+","+username+","+password);
                     return clientId;
                 }
             }
@@ -106,7 +104,7 @@ public class ConnectionService {
             log.info("error clientId : " + clientId);
             return false;
         }
-        Object clientInfo= redisManager.hget(RedisConstant.H_CLIENT_INFO,String.valueOf(clientId));
+        Object clientInfo= redisManager.hget(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
         if(ObjectUtils.isEmpty(clientInfo)){
             log.error("get no clientInfo from redis by clientId:"+clientId);
             return false;
@@ -161,7 +159,6 @@ public class ConnectionService {
                 log.info("MT4API_Connect login : " + login);
                 if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
                     log.info("connect borker success!");
-                    redisManager.hset(RedisConstant.H_CLIENT_INFO,String.valueOf(clientId),brokerName+","+username+","+password);
                     return clientId;
                 }
             }
@@ -193,7 +190,6 @@ public class ConnectionService {
                 log.info("MT4API_Connect login : " + login);
                 if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
                     log.info("connect borker success!");
-                    redisManager.hset(RedisConstant.H_CLIENT_INFO,String.valueOf(clientId),brokerName+","+username+","+password);
                     return clientId;
                 }
             }

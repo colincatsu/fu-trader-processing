@@ -1,6 +1,7 @@
 package com.future.trader.controller;
 
 
+import com.alibaba.fastjson.JSONObject;
 import com.future.trader.bean.TradeRecordInfo;
 import com.future.trader.common.exception.DataConflictException;
 import com.future.trader.common.helper.PageInfoHelper;
@@ -78,5 +79,21 @@ public class OrderController {
         double volume=Double.valueOf(String.valueOf(conditionMap.get("volume")));
 
         return orderInfoService.sendOrderClose(clientId,orderId,symbol,volume);
+    }
+
+    //关闭订单
+    @RequestMapping(value= "/getSymbolInfo",method= RequestMethod.POST)
+    public @ResponseBody
+    JSONObject getSymbolInfo(@RequestBody RequestParams<Map> requestParams){
+        // 获取请求参数
+        Map conditionMap = requestParams.getParams();
+        if(conditionMap==null||conditionMap.get("clientId")==null||conditionMap.get("symbol")==null){
+            log.error("sendrderCloseAsync null params!");
+            throw new DataConflictException("sendrderCloseAsync null params!");
+        }
+        int clientId=Integer.parseInt(String.valueOf(conditionMap.get("clientId")));
+        String symbol= String.valueOf(conditionMap.get("symbol"));
+
+        return orderInfoService.obtainSymbolInfo(clientId,symbol);
     }
 }

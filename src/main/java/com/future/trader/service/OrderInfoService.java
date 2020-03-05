@@ -2,6 +2,7 @@ package com.future.trader.service;
 
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.future.trader.api.*;
 import com.future.trader.bean.TradeRecordInfo;
 import com.future.trader.common.exception.BusinessException;
@@ -272,27 +273,94 @@ public class OrderInfoService {
     }
 
     /**
+     * 订单交易(尝试知道达到次数或者成功)
+     * @param clientId
+     * @param tradeRecord
+     * @param magic
+     * @param comment
+     * @param current
+     * @param times
+     * @return
+     */
+    public boolean orderTradeRetrySyn(int clientId,OrderLibrary.TradeRecord tradeRecord,int magic,String comment,int current, int times){
+
+        OrderLibrary.TradeRecord.ByReference orderSend = new OrderLibrary.TradeRecord.ByReference();
+        QuoteLibrary.QuoteEventInfo.ByReference quoteInfo = new QuoteLibrary.QuoteEventInfo.ByReference();
+
+        //循环获取行情信息，直到获取到最新的行情信息
+        while (!QuoteLibrary.library.MT4API_GetQuote(clientId, new String(tradeRecord.symbol), quoteInfo)) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);
+            } catch (Exception e) {
+                log.error(e.getMessage(),e);
+                return false;
+            }
+        }
+
+        double volume=tradeRecord.volume*0.01;
+        /*int ieDeviation =*/
+        long time = LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().getEpochSecond();
+
+        /*boolean isTrade = TraderLibrary.library.MT4API_OrderSend(clientId, new String(tradeRecord.symbol).trim(),
+                (byte) tradeRecord.cmd, volume,
+                quoteInfo.fAsk, 40, tradeRecord.stoploss, tradeRecord.takeprofit,
+                ""+tradeRecord.login, tradeRecord.order, (int) time + 24 * 60 * 60, orderSend)*/;
+        //异步提交
+        int isTrade = TraderLibrary.library.MT4API_OrderSendAsync(clientId, new String(tradeRecord.symbol).trim(),
+                (byte) tradeRecord.cmd, volume,
+                quoteInfo.fAsk, 40, tradeRecord.stoploss, tradeRecord.takeprofit,
+                comment, magic, (int) time + 24 * 60 * 60);
+
+        log.info("交易信息：isTrade:"+isTrade);
+        if (isTrade>0) {
+            log.info("交易信息：success! isTrade,times:"+current);
+            return true;
+        } else {
+            TradeUtil.printError(clientId);
+            log.info("跟单信息：fail! times:"+current);
+            if(current>=times){
+                //达到次数
+                log.error("跟单信息：fail finally! times:"+current);
+                return false;
+            }
+            /*一直请求 知道成功或者达到次数*/
+            return orderTradeRetrySyn(clientId,tradeRecord,magic,comment,current+1,times);
+        }
+    }
+
+    /**
      * 获取证券信息
      * @param clientId
      */
-    public void obtainSymbolInfo(int clientId) {
+    public JSONObject obtainSymbolInfo(int clientId, String symbolName) {
         IntByReference symbolCount = new IntByReference();
-        SymbolInfoLibrary.library.MT4API_GetSymbolsCount(clientId, symbolCount);
-        log.info("服务端支持的证劵个数：" + symbolCount.getValue());
-
-        String symbolName = "EURUSD";
         SymbolInfoLibrary.SymbolInfo.ByReference symbolInfo = new SymbolInfoLibrary.SymbolInfo.ByReference();
-        SymbolInfoLibrary.library.MT4API_GetSymbolInfo(clientId, symbolName, symbolInfo);
-        log.info("证劵信息："
-                + "symbol : " + new String(symbolInfo.symbol) + ","
-                + "description : " + new String(symbolInfo.description) + ","
-                + "source : " + new String(symbolInfo.source) + ","
-                + "currency : " + new String(symbolInfo.currency) + ","
-                + "type : " + symbolInfo.type + ","
-                + "digits : " + symbolInfo.digits + ","
-                + "trade : " + symbolInfo.trade);
 
-        System.out.println();
+        try {
+            SymbolInfoLibrary.library.MT4API_GetSymbolsCount(clientId, symbolCount);
+            log.info("服务端支持的证劵个数：" + symbolCount.getValue());
+            /*String symbolName = "EURUSD";*/
+            boolean getInfo= SymbolInfoLibrary.library.MT4API_GetSymbolInfo(clientId, symbolName, symbolInfo);
+            log.info("获取证券信息 "+symbolName+":"+getInfo);
+            if(!getInfo){
+                TradeUtil.printError(clientId);
+            }
+            log.info("证劵信息："
+                    + "symbol : " + new String(symbolInfo.symbol) + ","
+                    + "description : " + new String(symbolInfo.description) + ","
+                    + "source : " + new String(symbolInfo.source) + ","
+                    + "currency : " + new String(symbolInfo.currency) + ","
+                    + "type : " + symbolInfo.type + ","
+                    + "digits : " + symbolInfo.digits + ","
+                    + "spread : " + symbolInfo.spread + ","
+                    + "spread_balance : " + symbolInfo.spread_balance + ","
+                    + "trade : " + symbolInfo.trade);
+            log.info(JSON.toJSONString(symbolInfo));
+        }catch (Exception e){
+            log.error(e.getMessage(),e);
+        }
+
+        return JSON.parseObject(JSONObject.toJSONString(symbolInfo));
     }
 
     /**
