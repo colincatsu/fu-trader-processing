@@ -4,6 +4,7 @@ import com.future.trader.api.ConnectLibrary;
 import com.future.trader.api.InstanceLibrary;
 import com.future.trader.api.OrderLibrary;
 import com.future.trader.bean.TradeRecordInfo;
+import com.future.trader.common.constants.OrderConstant;
 import com.future.trader.service.DisConnectCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,8 +28,6 @@ public class TradeUtil {
         InstanceLibrary.library.MT4API_GetLastErrorDescription(clientId, errorDesc, 1024, 0);
         log.error(new String(errorDesc));
     }
-
-
 
     /**
      * 转换订单
@@ -74,5 +73,40 @@ public class TradeUtil {
         info.setApi_data(record.api_data);
 
         return info;
+    }
+
+    /**
+     * 校验magic是否合规
+     * @param comment
+     * @param magic
+     * @return
+     */
+    public static boolean checkMagic(String comment,int magic){
+        if(StringUtils.isEmpty(comment)){
+            return false;
+        }
+        String[] followInfo=comment.split(":");
+        try {
+            int followName=Integer.parseInt(followInfo[0]);
+            int orderId=Integer.parseInt(followInfo[1]);
+            int newMagic=getMagic(followName,orderId);
+            if(magic!=newMagic){
+                return false;
+            }
+        }catch (Exception e){
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 根据跟随账号和信号源订单生成跟随magic
+     * @param followName
+     * @param orderId
+     * @return
+     */
+    public static int getMagic(int followName,int orderId){
+        int magic=OrderConstant.ORDER_FOLLOW_MAGIC>>2|followName<<4&orderId<<3;
+        return magic%1000000;
     }
 }

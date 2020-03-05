@@ -32,27 +32,29 @@ public class FollowOrderUpdateCallbackImpl implements FollowOrderUpdateCallback 
         TradeRecordInfo info =TradeUtil.convertTradeRecords(orderUpdateEventInfo.tradeRecord);
         log.info("orderInfo : " + JSON.toJSONString(info));
 
-        if(orderUpdateEventInfo.tradeRecord.magic== OrderConstant.ORDER_FOLLOW_MAGIC){
-            if(StringUtils.isEmpty(info.getComment())){
-                log.error("跟单信息错误！ 缺少跟单关系");
-            }
-            if (OrderUpdateActionEnum.OUA_PositionOpen.getIntValue() == orderUpdateEventInfo.updateAction.ordinal()) {
-                log.info("跟随订单开仓,跟随账号："+info.getLogin());
-                //开仓
-                followCallbackOpen(info);
-                log.info("跟随订单开仓,跟随订单号："+info.getOrder());
-            }else if (OrderUpdateActionEnum.OUA_PositionClose.getIntValue() == orderUpdateEventInfo.updateAction.ordinal()) {
-                log.info("跟随订单平仓,跟随账号："+info.getLogin());
-                // 平仓
-                followCallbackClose(info);
-                log.info("跟随订单平仓,跟随订单号："+info.getOrder());
-            }else {
-                log.info("跟随订单其他交易,跟随账号："+info.getLogin());
-                log.info("跟随订单其他交易,跟随订单号："+info.getOrder());
-            }
-        }else {
-            log.info("user trade order:"+orderUpdateEventInfo.tradeRecord.order);
+        //校验是否是自己跟随订单
+        String comment=info.getComment();
+        if(StringUtils.isEmpty(comment)){
+            log.info("用户自主交易订单 order:"+info.getOrder());
             return;
+        }
+        if(!TradeUtil.checkMagic(comment,info.magic)){
+            log.info("用户自主交易订单 order:"+info.getOrder());
+            return;
+        }
+        if (OrderUpdateActionEnum.OUA_PositionOpen.getIntValue() == orderUpdateEventInfo.updateAction.ordinal()) {
+            log.info("跟随订单开仓,跟随账号："+info.getLogin());
+            //开仓
+            followCallbackOpen(info);
+            log.info("跟随订单开仓,跟随订单号："+info.getOrder());
+        }else if (OrderUpdateActionEnum.OUA_PositionClose.getIntValue() == orderUpdateEventInfo.updateAction.ordinal()) {
+            log.info("跟随订单平仓,跟随账号："+info.getLogin());
+            // 平仓
+            followCallbackClose(info);
+            log.info("跟随订单平仓,跟随订单号："+info.getOrder());
+        }else {
+            log.info("跟随订单其他交易,跟随账号："+info.getLogin());
+            log.info("跟随订单其他交易,跟随订单号："+info.getOrder());
         }
     }
 

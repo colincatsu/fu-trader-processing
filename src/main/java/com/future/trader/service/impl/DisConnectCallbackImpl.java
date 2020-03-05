@@ -42,7 +42,7 @@ public class DisConnectCallbackImpl implements DisConnectCallback {
     public void reConnect(int clientId,int current, int times){
         /*需要根据clientId 获取user信息 重新init*/
         boolean login = connectionService.reConnectWithConnectCallback(clientId);
-        log.info("MT4API_Connect reConnect current:"+current+", login" + login);
+        log.info("MT4API_Connect reConnect current:"+current+", login：" + login);
 
         if(!login){
             if(current>=times){

@@ -97,8 +97,8 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
             throw new BusinessException("connect borker false, clientId error!");
         }
 
-        String redisKey=String.valueOf(followName)+":"+tradeRecord.order;
-        Object followOrder=redisManager.hget(RedisConstant.H_ORDER_FOLLOW_ORDER_RELATION,redisKey);
+        String comment=followName+":"+tradeRecord.order;
+        Object followOrder=redisManager.hget(RedisConstant.H_ORDER_FOLLOW_ORDER_RELATION,comment);
         if(ObjectUtils.isEmpty(followOrder)){
             log.error("用户："+followName+",未跟随该订单 order："+tradeRecord.order);
             return;
@@ -131,7 +131,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
             if (isSend>0) {
                 log.info("跟单信息：close success! isSend,followOrderid:"+followOrderId);
                 log.info("跟单信息：isSend:"+isSend);
-                redisManager.hset(RedisConstant.H_ORDER_FOLLOW_CLOSING,redisKey,followOrderId);
+                redisManager.hset(RedisConstant.H_ORDER_FOLLOW_CLOSING,comment,followOrderId);
             } else {
                 TradeUtil.printError(clientId);
             }
@@ -188,12 +188,13 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                         + "expiration : " + time + ","
                 );
 
-                String followMsg=String.valueOf(followName)+":"+tradeRecord.order;
+                String comment=followName+":"+tradeRecord.order;
+                int magic=TradeUtil.getMagic(followName,tradeRecord.order);
                 //调用重复交易
-                boolean tradeResult=orderInfoService.orderTradeRetrySyn(clientId,tradeRecord, OrderConstant.ORDER_FOLLOW_MAGIC,followMsg,1,5);
+                boolean tradeResult=orderInfoService.orderTradeRetrySyn(clientId,tradeRecord,magic,comment,1,5);
                 if(tradeResult){
                     //保存正在交易状态
-                    redisManager.hset(RedisConstant.H_ORDER_FOLLOW_TRADING,followMsg,orderSend.order);
+                    redisManager.hset(RedisConstant.H_ORDER_FOLLOW_TRADING,comment,orderSend.order);
                     log.info("跟单信息：success! isTrade");
                 }
             }else {
