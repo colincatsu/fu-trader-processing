@@ -2,6 +2,7 @@ package com.future.trader.service;
 
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.future.trader.api.*;
 import com.future.trader.bean.TradeRecordInfo;
@@ -38,7 +39,7 @@ public class OrderInfoService {
      * @param helper
      * @return
      */
-    public PageInfo<TradeRecordInfo> getUserCloseOrders(Map conditionMap, PageInfoHelper helper){
+    public List<TradeRecordInfo> getUserCloseOrders(Map conditionMap, PageInfoHelper helper){
 
         if(conditionMap==null){
             log.error("null input message!");
@@ -50,15 +51,20 @@ public class OrderInfoService {
             log.error("null input message!");
             throw new DataConflictException("null input message!");
         }
+        if(conditionMap.get("nHisTimeFrom")==null
+                ||conditionMap.get("nHisTimeTo")==null){
+            log.error("null input message!");
+            throw new DataConflictException("null input message!");
+        }
         String brokerName = String.valueOf(conditionMap.get("brokerName"));
         int username = Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password = String.valueOf(conditionMap.get("password"));
+        int nThreadHisTimeFrom = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeFrom")));
+        int nThreadHisTimeTo = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeTo")));
 
-        /*String brokername = "srv\\TradeMax-live2.srv";
-        int username = 812320;
-        String password = "cxzn666666";*/
+        //TODO 时间段不能超过1周
 
-        int clientId = connectionService.getUserConnect(brokerName,username,password);
+        int clientId = connectionService.getUserConnect(brokerName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
@@ -67,16 +73,54 @@ public class OrderInfoService {
         List<TradeRecordInfo> list=obtainCloseOrderInfo(clientId);
         connectionService.disConnect(clientId);
 
-        return new PageInfo<TradeRecordInfo>(list);
+        return list;
     }
 
     /**
      * 根据条件查询用户历史订单
      * @param conditionMap
+     * @return
+     */
+    public TradeRecordInfo getUserCloseOrderById(Map conditionMap){
+
+        if(conditionMap==null){
+            log.error("null input message!");
+        }else {
+            log.info(JSON.toJSONString(conditionMap));
+        }
+        if(conditionMap.get("brokerName")==null
+                ||conditionMap.get("username")==null||conditionMap.get("password")==null){
+            log.error("null input message!");
+            throw new DataConflictException("null input message!");
+        }
+        if(conditionMap.get("orderId")==null){
+            log.error("null input message!");
+            throw new DataConflictException("null input message!");
+        }
+        String brokerName = String.valueOf(conditionMap.get("brokerName"));
+        int username = Integer.parseInt(String.valueOf(conditionMap.get("username")));
+        String password = String.valueOf(conditionMap.get("password"));
+        int orderId = Integer.parseInt(String.valueOf(conditionMap.get("orderId")));
+
+        int clientId = connectionService.getUserConnect(brokerName,username,password);
+        if(clientId==0){
+            // 初始化失败！
+            log.error("client init error !");
+            throw new BusinessException("client init error !");
+        }
+        TradeRecordInfo tradeRecordInfo=obtainCloseOrderInfo(clientId,orderId);
+        connectionService.disConnect(clientId);
+
+        return tradeRecordInfo;
+    }
+
+    /**
+     * 根据条件查询用户在仓订单
+     * @param conditionMap
      * @param helper
      * @return
      */
-    public PageInfo<TradeRecordInfo> getUserOpenOrders(Map conditionMap, PageInfoHelper helper){
+    public List<TradeRecordInfo> getUserOpenOrders(Map conditionMap, PageInfoHelper helper){
 
         if(conditionMap==null){
             log.error("null input message!");
@@ -91,10 +135,6 @@ public class OrderInfoService {
         String brokerName = String.valueOf(conditionMap.get("brokerName"));
         int username = Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password = String.valueOf(conditionMap.get("password"));
-
-        /*String brokername = "srv\\TradeMax-live2.srv";
-        int username = 812320;
-        String password = "cxzn666666";*/
 
         int clientId = connectionService.getUserConnect(brokerName,username,password);
         if(clientId==0){
@@ -105,7 +145,45 @@ public class OrderInfoService {
         List<TradeRecordInfo> list=obtainOpenOrderInfo(clientId);
         connectionService.disConnect(clientId);
 
-        return new PageInfo<TradeRecordInfo>(list);
+        return list;
+    }
+
+    /**
+     * 根据条件查询用户在仓订单
+     * @param conditionMap
+     * @return
+     */
+    public TradeRecordInfo getUserOpenOrder(Map conditionMap){
+
+        if(conditionMap==null){
+            log.error("null input message!");
+        }else {
+            log.info(JSON.toJSONString(conditionMap));
+        }
+        if(conditionMap.get("brokerName")==null
+                ||conditionMap.get("username")==null||conditionMap.get("password")==null){
+            log.error("null input message!");
+            throw new DataConflictException("null input message!");
+        }
+        if(conditionMap.get("orderId")==null){
+            log.error("null input message!");
+            throw new DataConflictException("null input message!");
+        }
+        String brokerName = String.valueOf(conditionMap.get("brokerName"));
+        int username = Integer.parseInt(String.valueOf(conditionMap.get("username")));
+        String password = String.valueOf(conditionMap.get("password"));
+        int orderId = Integer.parseInt(String.valueOf(conditionMap.get("orderId")));
+
+        int clientId = connectionService.getUserConnect(brokerName,username,password);
+        if(clientId==0){
+            // 初始化失败！
+            log.error("client init error !");
+            throw new BusinessException("client init error !");
+        }
+        TradeRecordInfo info=obtainOpenOrderInfo(clientId,orderId);
+        connectionService.disConnect(clientId);
+
+        return info;
     }
 
     /**
@@ -175,7 +253,6 @@ public class OrderInfoService {
 
             for (int i = 0; i < closeCountInt; i++) {
                 OrderLibrary.TradeRecord closetradeRecord = closeReference[i];
-
                 log.info("订单信息："
                         + "order : " + closetradeRecord.order + ","
                         + "login : " + closetradeRecord.login + ","
@@ -195,6 +272,35 @@ public class OrderInfoService {
             TradeUtil.printError(clientId);
         }
         return recordInfoList;
+    }
+
+    /**
+     * 根据orderId获取关闭订单
+     * @param clientId
+     * @param orderId
+     * @return
+     */
+    public TradeRecordInfo obtainCloseOrderInfo(int clientId,int orderId) {
+        if(orderId==0){
+            return null;
+        }
+        OrderLibrary.TradeRecord.ByReference tradeRecord = new OrderLibrary.TradeRecord.ByReference();
+        OrderLibrary.library.MT4API_GetCloseOrder(clientId, orderId, tradeRecord);
+        System.out.println("订单信息："
+                + "order : " + tradeRecord.order + ","
+                + "login : " + tradeRecord.login + ","
+                + "symbol : " + new String(tradeRecord.symbol) + ","
+                + "digits : " + tradeRecord.digits + ","
+                + "volume : " + tradeRecord.volume + ","
+                + "open_time : " + tradeRecord.open_time + ","
+                + "open_price : " + tradeRecord.open_price + ","
+                + "state : " + tradeRecord.state + ","
+                + "stoploss : " + tradeRecord.stoploss + ","
+                + "takeprofit : " + tradeRecord.takeprofit + ","
+                + "magic : " + tradeRecord.magic + ","
+                + "cmd : " + tradeRecord.cmd + ","
+        );
+        return TradeUtil.convertTradeRecords(tradeRecord);
     }
 
     /**

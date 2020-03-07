@@ -63,23 +63,9 @@ public class AccountInfoService {
         TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, signalOrderUpdateCallbackImpl, clientId);
         log.info("set signal monitor account: brokerName:"+brokerName+",username:"+username);
 
-        return clientId;
-    }
-
-    /**
-     * 设置信号源账户 监听
-     * @param clientId
-     * @return
-     */
-    public int setAccountMonitor(int clientId){
-        boolean login = ConnectLibrary.library.MT4API_Connect(clientId);
-        if(!login){
-            log.error("clientId connnect error !");
-            throw new BusinessException("clientId connnect error !");
-        }
-        /*设置跟随订单更新回调*/
-        TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, followOrderUpdateCallbackImpl, clientId);
-        log.info("set signal monitor account: clientId"+clientId);
+        String accountInfo=brokerName+","+username+","+password;
+        redisManager.hset(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username),clientId);
+        redisManager.hset(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId),accountInfo);
         return clientId;
     }
 
@@ -87,9 +73,10 @@ public class AccountInfoService {
      * 设置跟单关系
      * @param signalName
      * @param followName
+     * @param followRule
      * @return
      */
-    public boolean setAccountFollowRelation(int signalName,int followName){
+    public boolean setAccountFollowRelation(int signalName,int followName,JSONObject followRule){
         if(signalName<=0||followName<=0){
             log.error("设置跟单关系,参数错误！ signalName:"+signalName+",+"+followName);
         }
@@ -112,7 +99,15 @@ public class AccountInfoService {
      * @param password
      * @return
      */
-    public int setAccountConnnect(String brokerName,int username,String password){
+    public int setAccountConnect(String brokerName,int username,String password){
+        Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+        if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
+            int currentClientId=(Integer)accountClientId;
+            if (ConnectLibrary.library.MT4API_IsConnect(currentClientId)) {
+                log.info("client already connected!");
+                return currentClientId;
+            }
+        }
         int clientId = connectionService.getUserConnectWithConnectCallback(brokerName,username,password);
         if(clientId==0){
             // 初始化失败！
@@ -133,10 +128,26 @@ public class AccountInfoService {
 
     /**
      * 断开链接账户
+     * @param brokerName
+     * @param username
+     * @param password
+     * @return
+     */
+    public boolean setAccountDisConnect(String brokerName,int username,String password){
+        Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+        if(ObjectUtils.isEmpty(accountClientId)||(Integer)accountClientId==0){
+            log.info("client already disConnected!");
+            return true;
+        }
+        int clientId=(Integer)accountClientId;
+        return setAccountDisConnect(clientId);
+    }
+    /**
+     * 断开链接账户
      * @param clientId
      * @return
      */
-    public boolean setAccountDisConnnect(int clientId){
+    public boolean setAccountDisConnect(int clientId){
         if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
             try {
                 InstanceLibrary.library.MT4API_Destory(clientId);

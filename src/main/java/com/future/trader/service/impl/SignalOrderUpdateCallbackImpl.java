@@ -57,12 +57,16 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
             log.info("信号源无跟随账号 signalLogin:"+info.getLogin());
             return;
         }
+
+        //TODO 社区跟随规则校验
+
         JSONObject followJson=new JSONObject();
         followJson=(JSONObject)object;
         OrderLibrary.TradeRecord tradeRecord = orderUpdateEventInfo.tradeRecord;
         try {
             for(String jsonkey:followJson.keySet()){
                 int followName= followJson.getIntValue(jsonkey);
+                //TODO 账号跟随规则校验
                 if (OrderUpdateActionEnum.OUA_PositionOpen.getIntValue() == orderUpdateEventInfo.updateAction.ordinal()) {
                     log.info("信号源订单开仓,跟随账号："+followName);
                     //开仓
@@ -130,7 +134,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                     volume,quoteInfo.fAsk,40);
             if (isSend>0) {
                 log.info("跟单信息：close success! isSend,followOrderid:"+followOrderId);
-                log.info("跟单信息：isSend:"+isSend);
+                //TODO 要做失败监测，里面放订单
                 redisManager.hset(RedisConstant.H_ORDER_FOLLOW_CLOSING,comment,followOrderId);
             } else {
                 TradeUtil.printError(clientId);
@@ -193,7 +197,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                 //调用重复交易
                 boolean tradeResult=orderInfoService.orderTradeRetrySyn(clientId,tradeRecord,magic,comment,1,5);
                 if(tradeResult){
-                    //保存正在交易状态
+                    //保存正在交易状态  TODO 要做失败监测，里面放订单
                     redisManager.hset(RedisConstant.H_ORDER_FOLLOW_TRADING,comment,orderSend.order);
                     log.info("跟单信息：success! isTrade");
                 }

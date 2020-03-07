@@ -1,8 +1,8 @@
 package com.future.trader.controller;
 
 
+import com.alibaba.fastjson.JSON;
 import com.future.trader.common.exception.DataConflictException;
-import com.future.trader.common.helper.PageInfoHelper;
 import com.future.trader.common.result.RequestParams;
 import com.future.trader.service.AccountInfoService;
 import org.slf4j.Logger;
@@ -40,29 +40,15 @@ public class AccountController {
         return accountInfoService.setSignalMonitor(brokerName,username,password);
     }
 
-    //设置信号源监听
-    @RequestMapping(value= "/setAccountMonitor",method= RequestMethod.POST)
-    public @ResponseBody int setAccountMonitor(@RequestBody RequestParams<Map> requestParams){
-        // 获取请求参数
-        Map conditionMap = requestParams.getParams();
-        if(conditionMap==null||conditionMap.get("clientId")==null){
-            log.error("getUserCloseOrders null params!");
-            throw new DataConflictException("setAccountMonitor null params!");
-        }
-        int clientId=Integer.parseInt(String.valueOf(conditionMap.get("clientId")));
-
-        return accountInfoService.setAccountMonitor(clientId);
-    }
-
     //链接账户
-    @RequestMapping(value= "/setAccountConnnect",method= RequestMethod.POST)
-    public @ResponseBody int setAccountConnnect(@RequestBody RequestParams<Map> requestParams){
+    @RequestMapping(value= "/setAccountConnect",method= RequestMethod.POST)
+    public @ResponseBody int setAccountConnect(@RequestBody RequestParams<Map> requestParams){
         // 获取请求参数
         Map conditionMap = requestParams.getParams();
 
         if(conditionMap==null||conditionMap.get("brokerName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
-            log.error("getUserCloseOrders null params!");
+            log.error("setAccountConnnect null params!");
             throw new DataConflictException("setAccountConnnect null params!");
         }
 
@@ -70,22 +56,25 @@ public class AccountController {
         int username=Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password=String.valueOf(conditionMap.get("password"));
 
-        return accountInfoService.setAccountConnnect(brokerName,username,password);
+        return accountInfoService.setAccountConnect(brokerName,username,password);
     }
 
     //断开链接账户
-    @RequestMapping(value= "/setAccountDisConnnect",method= RequestMethod.POST)
-    public @ResponseBody boolean setAccountDisConnnect(@RequestBody RequestParams<Map> requestParams){
+    @RequestMapping(value= "/setAccountDisConnect",method= RequestMethod.POST)
+    public @ResponseBody boolean setAccountDisConnect(@RequestBody RequestParams<Map> requestParams){
         // 获取请求参数
         Map conditionMap = requestParams.getParams();
 
-        if(conditionMap==null||conditionMap.get("clientId")==null){
-            log.error("getUserCloseOrders null params!");
-            throw new DataConflictException("setAccountDisConnnect null params!");
+        if(conditionMap==null||conditionMap.get("brokerName")==null
+                ||conditionMap.get("username")==null||conditionMap.get("password")==null){
+            log.error("setAccountConnnect null params!");
+            throw new DataConflictException("setAccountConnnect null params!");
         }
-        int clientId=Integer.parseInt(String.valueOf(conditionMap.get("clientId")));
+        String brokerName=String.valueOf(conditionMap.get("brokerName"));
+        int username=Integer.parseInt(String.valueOf(conditionMap.get("username")));
+        String password=String.valueOf(conditionMap.get("password"));
 
-        return accountInfoService.setAccountDisConnnect(clientId);
+        return accountInfoService.setAccountDisConnect(brokerName,username,password);
     }
 
     //设置账户跟随关系
@@ -100,9 +89,10 @@ public class AccountController {
             throw new DataConflictException("setAccountFollowRelation null params!");
         }
 
-        int followName=Integer.parseInt(String.valueOf(conditionMap.get("followName")));
         int signalName=Integer.parseInt(String.valueOf(conditionMap.get("signalName")));
+        int followName=Integer.parseInt(String.valueOf(conditionMap.get("followName")));
+        String followRule=String.valueOf(conditionMap.get("followRule"));
 
-        return accountInfoService.setAccountFollowRelation(signalName,followName);
+        return accountInfoService.setAccountFollowRelation(signalName,followName, JSON.parseObject(followRule));
     }
 }
