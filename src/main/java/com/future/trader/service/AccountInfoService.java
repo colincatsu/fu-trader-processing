@@ -43,17 +43,17 @@ public class AccountInfoService {
 
     /**
      * 设置信号源账户 监听
-     * @param brokerName
+     * @param serverName
      * @param username
      * @param password
      * @return
      */
-    public int setSignalMonitor(String brokerName,int username,String password){
-        if(StringUtils.isEmpty(brokerName)||StringUtils.isEmpty(password)||username==0){
+    public int setSignalMonitor(String serverName,int username,String password){
+        if(StringUtils.isEmpty(serverName)||StringUtils.isEmpty(password)||username==0){
             log.error("设置信号源账户 监听,传入传入参数为空！");
             throw new DataConflictException("设置信号源账户 监听,传入传入参数为空！");
         }
-        int clientId = connectionService.getUserConnectWithConnectCallback(brokerName,username,password);
+        int clientId = connectionService.getUserConnectWithConnectCallback(serverName,username,password);
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
@@ -61,9 +61,9 @@ public class AccountInfoService {
         }
         /*设置信号源监听*/
         TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, signalOrderUpdateCallbackImpl, clientId);
-        log.info("set signal monitor account: brokerName:"+brokerName+",username:"+username);
+        log.info("set signal monitor account: serverName:"+serverName+",username:"+username);
 
-        String accountInfo=brokerName+","+username+","+password;
+        String accountInfo=serverName+","+username+","+password;
         redisManager.hset(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username),clientId);
         redisManager.hset(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId),accountInfo);
         return clientId;
@@ -94,12 +94,12 @@ public class AccountInfoService {
 
     /**
      * 链接账户
-     * @param brokerName
+     * @param serverName
      * @param username
      * @param password
      * @return
      */
-    public int setAccountConnect(String brokerName,int username,String password){
+    public int setAccountConnect(String serverName,int username,String password){
         Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
         if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
             int currentClientId=(Integer)accountClientId;
@@ -108,7 +108,7 @@ public class AccountInfoService {
                 return currentClientId;
             }
         }
-        int clientId = connectionService.getUserConnectWithConnectCallback(brokerName,username,password);
+        int clientId = connectionService.getUserConnectWithConnectCallback(serverName,username,password);
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
@@ -119,21 +119,21 @@ public class AccountInfoService {
         /*设置跟随订单更新回调*/
         TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, followOrderUpdateCallbackImpl, clientId);
 
-        String accountInfo=brokerName+","+username+","+password;
+        String accountInfo=serverName+","+username+","+password;
         redisManager.hset(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username),clientId);
         redisManager.hset(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId),accountInfo);
-        log.info("set account connnect: brokerName:"+brokerName+",username:"+username);
+        log.info("set account connnect: serverName:"+serverName+",username:"+username);
         return clientId;
     }
 
     /**
      * 断开链接账户
-     * @param brokerName
+     * @param serverName
      * @param username
      * @param password
      * @return
      */
-    public boolean setAccountDisConnect(String brokerName,int username,String password){
+    public boolean setAccountDisConnect(String serverName,int username,String password){
         Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
         if(ObjectUtils.isEmpty(accountClientId)||(Integer)accountClientId==0){
             log.info("client already disConnected!");

@@ -27,17 +27,17 @@ public class AccountController {
         // 获取请求参数
         Map conditionMap = requestParams.getParams();
 
-        if(conditionMap==null||conditionMap.get("brokerName")==null
+        if(conditionMap==null||conditionMap.get("serverName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
             log.error("getUserCloseOrders null params!");
             throw new DataConflictException("setSignalMonitor null params!");
         }
 
-        String brokerName=String.valueOf(conditionMap.get("brokerName"));
+        String serverName=String.valueOf(conditionMap.get("serverName"));
         int username=Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password=String.valueOf(conditionMap.get("password"));
 
-        return accountInfoService.setSignalMonitor(brokerName,username,password);
+        return accountInfoService.setSignalMonitor(serverName,username,password);
     }
 
     //链接账户
@@ -46,17 +46,17 @@ public class AccountController {
         // 获取请求参数
         Map conditionMap = requestParams.getParams();
 
-        if(conditionMap==null||conditionMap.get("brokerName")==null
+        if(conditionMap==null||conditionMap.get("serverName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
             log.error("setAccountConnnect null params!");
             throw new DataConflictException("setAccountConnnect null params!");
         }
 
-        String brokerName=String.valueOf(conditionMap.get("brokerName"));
+        String serverName=String.valueOf(conditionMap.get("serverName"));
         int username=Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password=String.valueOf(conditionMap.get("password"));
 
-        return accountInfoService.setAccountConnect(brokerName,username,password);
+        return accountInfoService.setAccountConnect(serverName,username,password);
     }
 
     //断开链接账户
@@ -65,16 +65,16 @@ public class AccountController {
         // 获取请求参数
         Map conditionMap = requestParams.getParams();
 
-        if(conditionMap==null||conditionMap.get("brokerName")==null
+        if(conditionMap==null||conditionMap.get("serverName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
             log.error("setAccountConnnect null params!");
             throw new DataConflictException("setAccountConnnect null params!");
         }
-        String brokerName=String.valueOf(conditionMap.get("brokerName"));
+        String serverName=String.valueOf(conditionMap.get("serverName"));
         int username=Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password=String.valueOf(conditionMap.get("password"));
 
-        return accountInfoService.setAccountDisConnect(brokerName,username,password);
+        return accountInfoService.setAccountDisConnect(serverName,username,password);
     }
 
     //设置账户跟随关系

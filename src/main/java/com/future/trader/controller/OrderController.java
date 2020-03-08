@@ -33,8 +33,7 @@ public class OrderController {
     List<TradeRecordInfo>  getUserCloseOrders(@RequestBody RequestParams<Map> requestParams){
         // 获取请求参数
         Map conditionMap = requestParams.getParams();
-        PageInfoHelper helper = requestParams.getPageInfoHelper();
-        return orderInfoService.getUserCloseOrders(conditionMap,helper);
+        return orderInfoService.getUserCloseOrders(conditionMap);
     }
 
     //获取历史订单
@@ -51,8 +50,7 @@ public class OrderController {
     List<TradeRecordInfo>  getUserOpenOrders(@RequestBody RequestParams<Map> requestParams){
         // 获取请求参数
         Map conditionMap = requestParams.getParams();
-        PageInfoHelper helper = requestParams.getPageInfoHelper();
-        return orderInfoService.getUserOpenOrders(conditionMap,helper);
+        return orderInfoService.getUserOpenOrders(conditionMap);
     }
 
     //获取open订单

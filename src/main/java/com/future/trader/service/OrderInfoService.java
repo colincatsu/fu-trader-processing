@@ -6,16 +6,20 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.future.trader.api.*;
 import com.future.trader.bean.TradeRecordInfo;
+import com.future.trader.common.constants.RedisConstant;
 import com.future.trader.common.exception.BusinessException;
 import com.future.trader.common.exception.DataConflictException;
 import com.future.trader.common.helper.PageInfoHelper;
+import com.future.trader.util.RedisManager;
 import com.future.trader.util.StringUtils;
 import com.future.trader.util.TradeUtil;
 import com.github.pagehelper.PageInfo;
 import com.sun.jna.ptr.IntByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
@@ -30,23 +34,24 @@ public class OrderInfoService {
 
     Logger log= LoggerFactory.getLogger(OrderInfoService.class);
 
+    @Autowired
+    RedisManager redisManager;
     @Resource
     ConnectionService connectionService;
 
     /**
      * 根据条件查询用户历史订单
      * @param conditionMap
-     * @param helper
      * @return
      */
-    public List<TradeRecordInfo> getUserCloseOrders(Map conditionMap, PageInfoHelper helper){
+    public List<TradeRecordInfo> getUserCloseOrders(Map conditionMap){
 
         if(conditionMap==null){
             log.error("null input message!");
         }else {
             log.info(JSON.toJSONString(conditionMap));
         }
-        if(conditionMap.get("brokerName")==null
+        if(conditionMap.get("serverName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
             log.error("null input message!");
             throw new DataConflictException("null input message!");
@@ -56,7 +61,7 @@ public class OrderInfoService {
             log.error("null input message!");
             throw new DataConflictException("null input message!");
         }
-        String brokerName = String.valueOf(conditionMap.get("brokerName"));
+        String serverName = String.valueOf(conditionMap.get("serverName"));
         int username = Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password = String.valueOf(conditionMap.get("password"));
         int nThreadHisTimeFrom = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeFrom")));
@@ -64,7 +69,7 @@ public class OrderInfoService {
 
         //TODO 时间段不能超过1周
 
-        int clientId = connectionService.getUserConnect(brokerName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
+        int clientId = connectionService.getUserConnect(serverName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
@@ -88,7 +93,7 @@ public class OrderInfoService {
         }else {
             log.info(JSON.toJSONString(conditionMap));
         }
-        if(conditionMap.get("brokerName")==null
+        if(conditionMap.get("serverName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
             log.error("null input message!");
             throw new DataConflictException("null input message!");
@@ -97,12 +102,18 @@ public class OrderInfoService {
             log.error("null input message!");
             throw new DataConflictException("null input message!");
         }
-        String brokerName = String.valueOf(conditionMap.get("brokerName"));
+        String serverName = String.valueOf(conditionMap.get("serverName"));
         int username = Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password = String.valueOf(conditionMap.get("password"));
         int orderId = Integer.parseInt(String.valueOf(conditionMap.get("orderId")));
 
-        int clientId = connectionService.getUserConnect(brokerName,username,password);
+        int clientId=0;
+        Object oClientId = redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+        if(ObjectUtils.isEmpty(oClientId)){
+            clientId=connectionService.getUserConnect(serverName,username,password);
+        }else {
+            clientId=(int)oClientId;
+        }
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
@@ -117,26 +128,33 @@ public class OrderInfoService {
     /**
      * 根据条件查询用户在仓订单
      * @param conditionMap
-     * @param helper
      * @return
      */
-    public List<TradeRecordInfo> getUserOpenOrders(Map conditionMap, PageInfoHelper helper){
+    public List<TradeRecordInfo> getUserOpenOrders(Map conditionMap){
 
         if(conditionMap==null){
             log.error("null input message!");
         }else {
             log.info(JSON.toJSONString(conditionMap));
         }
-        if(conditionMap.get("brokerName")==null
+        if(conditionMap.get("serverName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
             log.error("null input message!");
             throw new DataConflictException("null input message!");
         }
-        String brokerName = String.valueOf(conditionMap.get("brokerName"));
+        String serverName = String.valueOf(conditionMap.get("serverName"));
         int username = Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password = String.valueOf(conditionMap.get("password"));
+        int nThreadHisTimeFrom =0;
+        int nThreadHisTimeTo =0;
+        if(conditionMap.get("nHisTimeFrom")!=null){
+            nThreadHisTimeFrom = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeFrom")));
+        }
+        if(conditionMap.get("nHisTimeTo")!=null){
+            nThreadHisTimeTo = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeTo")));
+        }
 
-        int clientId = connectionService.getUserConnect(brokerName,username,password);
+        int clientId = connectionService.getUserConnect(serverName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
@@ -160,7 +178,7 @@ public class OrderInfoService {
         }else {
             log.info(JSON.toJSONString(conditionMap));
         }
-        if(conditionMap.get("brokerName")==null
+        if(conditionMap.get("serverName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
             log.error("null input message!");
             throw new DataConflictException("null input message!");
@@ -169,12 +187,18 @@ public class OrderInfoService {
             log.error("null input message!");
             throw new DataConflictException("null input message!");
         }
-        String brokerName = String.valueOf(conditionMap.get("brokerName"));
+        String serverName = String.valueOf(conditionMap.get("serverName"));
         int username = Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password = String.valueOf(conditionMap.get("password"));
         int orderId = Integer.parseInt(String.valueOf(conditionMap.get("orderId")));
 
-        int clientId = connectionService.getUserConnect(brokerName,username,password);
+        int clientId=0;
+        Object oClientId = redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+        if(ObjectUtils.isEmpty(oClientId)){
+            clientId=connectionService.getUserConnect(serverName,username,password);
+        }else {
+            clientId=(int)oClientId;
+        }
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
@@ -185,48 +209,6 @@ public class OrderInfoService {
 
         return info;
     }
-
-    /**
-     * 获取最新open订单
-     * @param clientId
-     */
-    public TradeRecordInfo getLastFollowOpenOrder(int clientId){
-        if(clientId==0){
-            return null;
-        }
-        List<TradeRecordInfo> list=obtainOpenOrderInfo(clientId);
-        if(list==null||list.size()==0){
-            return null;
-        }
-        TradeRecordInfo lastOrder=new TradeRecordInfo();
-        for(TradeRecordInfo order:list){
-            if(lastOrder.getOrder()<order.getOrder()&&order.getMagic()==999){
-                lastOrder=order;
-            }
-        }
-        return lastOrder;
-    }
-
-    /**
-     * 获取最新close订单
-     */
-    public TradeRecordInfo getLastFollowCloseOrder(int clientId){
-        if(clientId==0){
-            return null;
-        }
-        List<TradeRecordInfo> list=obtainCloseOrderInfo(clientId);
-        if(list==null||list.size()==0){
-            return null;
-        }
-        TradeRecordInfo lastOrder=new TradeRecordInfo();
-        for(TradeRecordInfo order:list){
-            if(lastOrder.getOrder()<order.getOrder()&&order.getMagic()==999){
-                lastOrder=order;
-            }
-        }
-        return lastOrder;
-    }
-
 
     /**
      * 获取历史订单信息

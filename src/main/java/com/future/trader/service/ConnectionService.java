@@ -24,16 +24,16 @@ public class ConnectionService {
 
     /**
      * 获取连接
-     * @param brokerName
+     * @param serverName
      * @param username
      * @param password
      * @return
      */
-    public int getUserConnect(String brokerName,int username,String password){
+    public int getUserConnect(String serverName,int username,String password){
         int clientId = InstanceLibrary.library.MT4API_Create();
         log.info("clientId : " + clientId);
         if (clientId > 0) {
-            String srvName =    "srv\\"+brokerName+".srv";
+            String srvName =    "srv\\"+serverName+".srv";
             boolean init = ConnectLibrary.library.MT4API_InitBySrvFile(clientId,srvName,username,password,
                     0,0);
             log.info("MT4API_Init : " + init);
@@ -67,16 +67,16 @@ public class ConnectionService {
 
     /**
      * 获取连接
-     * @param brokerName
+     * @param serverName
      * @param username
      * @param password
      * @return
      */
-    public int getUserConnectWithConnectCallback(String brokerName,int username,String password){
+    public int getUserConnectWithConnectCallback(String serverName,int username,String password){
         int clientId = InstanceLibrary.library.MT4API_Create();
         log.info("clientId : " + clientId);
         if (clientId > 0) {
-            String srvName =    "srv\\"+brokerName+".srv";
+            String srvName =    "srv\\"+serverName+".srv";
             boolean init = ConnectLibrary.library.MT4API_InitBySrvFile(clientId,srvName,username,password,
                     0,0);
             log.info("MT4API_Init : " + init);
@@ -139,18 +139,18 @@ public class ConnectionService {
 
     /**
      * 获取连接
-     * @param brokerName
+     * @param serverName
      * @param username
      * @param password
      * @param nThreadHisTimeFrom 初始获取历史订单的开始时间
      * @param nThreadHisTimeTo   初始获取历史订单的结束时间
      * @return
      */
-    public int getUserConnect(String brokerName,int username,String password,int nThreadHisTimeFrom,int nThreadHisTimeTo){
+    public int getUserConnect(String serverName,int username,String password,int nThreadHisTimeFrom,int nThreadHisTimeTo){
         int clientId = InstanceLibrary.library.MT4API_Create();
         log.info("clientId : " + clientId);
         if (clientId > 0) {
-            String srvName =    "srv\\"+brokerName+".srv";
+            String srvName =    "srv\\"+serverName+".srv";
             boolean init = ConnectLibrary.library.MT4API_InitBySrvFile(clientId,srvName,username,password,
                     nThreadHisTimeFrom,nThreadHisTimeTo);
             log.info("MT4API_Init : " + init);
@@ -169,18 +169,18 @@ public class ConnectionService {
 
     /**
      * 获取连接
-     * @param brokerName
+     * @param serverName
      * @param username
      * @param password
      * @param nThreadHisTimeFrom 初始获取历史订单的开始时间
      * @param nThreadHisTimeTo   初始获取历史订单的结束时间
      * @return
      */
-    public int getUserConnectWithConnectCallback(String brokerName,int username,String password,int nThreadHisTimeFrom,int nThreadHisTimeTo){
+    public int getUserConnectWithConnectCallback(String serverName,int username,String password,int nThreadHisTimeFrom,int nThreadHisTimeTo){
         int clientId = InstanceLibrary.library.MT4API_Create();
         log.info("clientId : " + clientId);
         if (clientId > 0) {
-            String srvName =    "srv\\"+brokerName+".srv";
+            String srvName =    "srv\\"+serverName+".srv";
             boolean init = ConnectLibrary.library.MT4API_InitBySrvFile(clientId,srvName,username,password,
                     nThreadHisTimeFrom,nThreadHisTimeTo);
             log.info("MT4API_Init : " + init);
