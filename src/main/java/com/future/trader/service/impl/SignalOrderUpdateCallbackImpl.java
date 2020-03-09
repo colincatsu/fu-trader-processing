@@ -70,7 +70,14 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                 if (OrderUpdateActionEnum.OUA_PositionOpen.getIntValue() == orderUpdateEventInfo.updateAction.ordinal()) {
                     log.info("信号源订单开仓,跟随账号："+followName);
                     // 跟单逻辑
-                    OrderLibrary.TradeRecord followRecord=orderInfoService.followOpenLogic(tradeRecord,followJson.getJSONObject(jsonKey));
+                    OrderLibrary.TradeRecord.ByReference followRecord = new OrderLibrary.TradeRecord.ByReference();
+                    int isMatch= orderInfoService.followOpenLogic(tradeRecord,followRecord,followJson.getJSONObject(jsonKey));
+                    if(isMatch>TradeErrorEnum.SUCCESS.code()){
+                        //异常订单入库
+                        log.error("信号源订单开仓 跟单规则匹配失败,跟随账号："+followName);
+                        dataJson.put("errorCode",isMatch);
+                        redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,dataJson);
+                    }
                     //开仓
                     int result= followTradeOpen(followRecord,followName);
                     if(result>TradeErrorEnum.SUCCESS.code()){

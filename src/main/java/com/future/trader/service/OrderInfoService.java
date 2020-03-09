@@ -604,12 +604,11 @@ public class OrderInfoService {
      * @param followRule
      * @return
      */
-    public OrderLibrary.TradeRecord followOpenLogic(OrderLibrary.TradeRecord signalRecord,JSONObject followRule){
-        OrderLibrary.TradeRecord.ByReference orderSend = new OrderLibrary.TradeRecord.ByReference();
+    public int followOpenLogic(OrderLibrary.TradeRecord signalRecord,OrderLibrary.TradeRecord orderSend,JSONObject followRule){
         try {
             if(signalRecord==null||followRule==null){
                 log.error("处理跟单开仓逻辑,传入数据为空！");
-                return null;
+                return TradeErrorEnum.FOLLOW_RULE_DATA_ERROR.code();
             }
             /*判断订单类型*/
             if(signalRecord.cmd!= OrderTypeEnum.OP_BUY.code()
@@ -619,7 +618,7 @@ public class OrderInfoService {
                     &&signalRecord.cmd!= OrderTypeEnum.OP_BUY_STOP.code()
                     &&signalRecord.cmd!= OrderTypeEnum.OP_SELL_STOP.code()){
                 log.error("处理跟单开仓逻辑,开仓类型无效！cmd:"+signalRecord.cmd);
-                return null;
+                return TradeErrorEnum.FOLLOW_ORDER_TYPE_MATCH_ERROR.code();
             }
 
             //跟单方向（0 正向跟单，1  反向跟单）
@@ -693,8 +692,8 @@ public class OrderInfoService {
 
         }catch (Exception e){
             log.error(e.getMessage(),e);
-            // TODO 写入日志
+            return TradeErrorEnum.FOLLOW_RULE_DEAL_ERROR.code();
         }
-        return orderSend;
+        return TradeErrorEnum.SUCCESS.code();
     }
 }

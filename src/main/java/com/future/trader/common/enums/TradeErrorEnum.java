@@ -18,7 +18,10 @@ public enum TradeErrorEnum {
     ORDER_OPEN_FAIL(6, "订单open同步提交失败"),
     ORDER_CLOSE_SYN_FAIL(7, "订单close异步提交失败"),
     ORDER_CLOSE_FAIL(8, "订单close同步提交失败"),
-    PARAM_NULL_ERROR(9, "参数为空");
+    PARAM_NULL_ERROR(9, "参数为空"),
+    FOLLOW_RULE_DATA_ERROR(9, "跟单规则获取异常"),
+    FOLLOW_ORDER_TYPE_MATCH_ERROR(9, "跟单订单类型匹配异常"),
+    FOLLOW_RULE_DEAL_ERROR(9, "跟单逻辑处理异常");
 
 
     /**
