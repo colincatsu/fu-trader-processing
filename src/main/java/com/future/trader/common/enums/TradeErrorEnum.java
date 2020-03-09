@@ -2,31 +2,23 @@ package com.future.trader.common.enums;
 
 
 /**
- * 订单类型
+ * 订单交易错误码
  * @author Admin
  * @version: 1.0
  */
-public enum OrderTypeEnum{
-    /* enum { OP_BUY=0,OP_SELL,OP_BUY_LIMIT,OP_SELL_LIMIT,OP_BUY_STOP,OP_SELL_STOP,OP_BALANCE,OP_CREDIT }; */
+public enum TradeErrorEnum {
 
-    OP_BUY(0, "OP_BUY"),
-    OP_SELL(1, "OP_SELL"),
-    OP_BUY_LIMIT(2, "OP_BUY_LIMIT"),
-    OP_SELL_LIMIT(3, "OP_SELL_LIMIT"),
-    OP_BUY_STOP(4, "OP_BUY_STOP"),
-    OP_SELL_STOP(5, "OP_SELL_STOP"),
-    OP_BALANCE(6, "OP_BALANCE"),
-    OP_CREDIT(7, "OP_CREDIT"),
-    OP_BUY_STOP_LIMIT(8, "OP_BUY_STOP_LIMIT"),
-    OP_SELL_STOP_LIMIT(9, "OP_SELL_STOP_LIMIT");
-
-    /**
-     * 全局异常状态码
-     * 状态码规则：状态码是6位长度的字符串。示例：1 01 100
-     * 1：应用标记（例如组织机构应用或者人员管理应用）
-     * 01：应用下的模块（例组织机构下的获取机构数据）
-     * 100：定义的业务异常
-     */
+    SUCCESS(0, "成功"),
+    FAILURE(1, "失败"),
+    TRADE_TIMEOUT(2, "交易超时"),
+    ACC_DIS_CONNECT(2, "用户未连接"),
+    TRADE_NOT_ALLOWED(3, "账户不允许交易"),
+    QUOTE_GET_ERROR(4, "获取行情信息"),
+    ORDER_OPEN_SYN_FAIL(5, "订单open异步提交失败"),
+    ORDER_OPEN_FAIL(6, "订单open同步提交失败"),
+    ORDER_CLOSE_SYN_FAIL(7, "订单close异步提交失败"),
+    ORDER_CLOSE_FAIL(8, "订单close同步提交失败"),
+    PARAM_NULL_ERROR(9, "参数为空");
 
 
     /**
@@ -41,7 +33,7 @@ public enum OrderTypeEnum{
     /**
      * 构造器
      */
-    OrderTypeEnum(Integer code, String message) {
+    TradeErrorEnum(Integer code, String message) {
         this.code = code;
         this.message = message;
     }
@@ -64,7 +56,7 @@ public enum OrderTypeEnum{
      * 通过枚举属性名称获取提示信息
      */
     public static String getMessage(String name) {
-        for (OrderTypeEnum item : OrderTypeEnum.values()) {
+        for (TradeErrorEnum item : TradeErrorEnum.values()) {
             if (item.name().equals(name)) {
                 return item.message;
             }
@@ -76,7 +68,7 @@ public enum OrderTypeEnum{
      * 通过枚举值获取状态码
      */
     public static Integer getCode(String message) {
-        for (OrderTypeEnum item : OrderTypeEnum.values()) {
+        for (TradeErrorEnum item : TradeErrorEnum.values()) {
             if (item.message.equals(message)) {
                 return item.code;
             }

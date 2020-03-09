@@ -76,7 +76,7 @@ public class AccountInfoService {
      * @param followRule
      * @return
      */
-    public boolean setAccountFollowRelation(int signalName,int followName,JSONObject followRule){
+    public boolean addAccountFollowRelation(int signalName,int followName,JSONObject followRule){
         if(signalName<=0||followName<=0){
             log.error("设置跟单关系,参数错误！ signalName:"+signalName+",+"+followName);
         }
@@ -85,10 +85,33 @@ public class AccountInfoService {
         if(!ObjectUtils.isEmpty(object)){
             followJson=(JSONObject)object;
         }
-        followJson.put(String.valueOf(followName),followName);
+        followJson.put(String.valueOf(followName),followRule);
         /*将跟单关系保存至redis*/
         redisManager.hset(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(signalName),followJson);
         log.error("设置跟单关系 成功！ signalName:"+signalName+",+followName:"+followName);
+        return true;
+    }
+
+    /**
+     * 移除跟单关系
+     * @param signalName
+     * @param followName
+     * @return
+     */
+    public boolean removeAccountFollowRelation(int signalName,int followName){
+        if(signalName<=0||followName<=0){
+            log.error("设置跟单关系,参数错误！ signalName:"+signalName+",+"+followName);
+        }
+        Object object= redisManager.hget(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(signalName));
+        JSONObject followJson=new JSONObject();
+        if(ObjectUtils.isEmpty(object)){
+            log.info("信号源 无跟单关系，signalName:"+signalName);
+        }
+        followJson=(JSONObject)object;
+        followJson.remove(String.valueOf(followName));
+        /*将跟单关系保存至redis*/
+        redisManager.hset(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(signalName),followJson);
+        log.error("移除跟单关系 成功！ signalName:"+signalName+",+followName:"+followName);
         return true;
     }
 

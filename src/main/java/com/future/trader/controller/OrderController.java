@@ -63,7 +63,7 @@ public class OrderController {
 
     //关闭订单
     @RequestMapping(value= "/sendOrderCloseAsync",method= RequestMethod.POST)
-    public @ResponseBody boolean sendOrderCloseAsync(@RequestBody RequestParams<Map> requestParams){
+    public @ResponseBody int sendOrderCloseAsync(@RequestBody RequestParams<Map> requestParams){
         // 获取请求参数
         Map conditionMap = requestParams.getParams();
         if(conditionMap==null||conditionMap.get("clientId")==null

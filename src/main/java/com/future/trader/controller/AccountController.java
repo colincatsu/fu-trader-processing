@@ -78,21 +78,39 @@ public class AccountController {
     }
 
     //设置账户跟随关系
-    @RequestMapping(value= "/setAccountFollowRelation",method= RequestMethod.POST)
-    public @ResponseBody boolean setAccountFollowRelation(@RequestBody RequestParams<Map> requestParams){
+    @RequestMapping(value= "/addAccountFollowRelation",method= RequestMethod.POST)
+    public @ResponseBody boolean addAccountFollowRelation(@RequestBody RequestParams<Map> requestParams){
         // 获取请求参数
         Map conditionMap = requestParams.getParams();
 
         if(conditionMap==null||conditionMap.get("followName")==null
                 ||conditionMap.get("signalName")==null){
             log.error("getUserCloseOrders null params!");
-            throw new DataConflictException("setAccountFollowRelation null params!");
+            throw new DataConflictException("addAccountFollowRelation null params!");
         }
 
         int signalName=Integer.parseInt(String.valueOf(conditionMap.get("signalName")));
         int followName=Integer.parseInt(String.valueOf(conditionMap.get("followName")));
         String followRule=String.valueOf(conditionMap.get("followRule"));
 
-        return accountInfoService.setAccountFollowRelation(signalName,followName, JSON.parseObject(followRule));
+        return accountInfoService.addAccountFollowRelation(signalName,followName, JSON.parseObject(followRule));
+    }
+
+    //取消账户跟随关系
+    @RequestMapping(value= "/removeAccountFollowRelation",method= RequestMethod.POST)
+    public @ResponseBody boolean removeAccountFollowRelation(@RequestBody RequestParams<Map> requestParams){
+        // 获取请求参数
+        Map conditionMap = requestParams.getParams();
+
+        if(conditionMap==null||conditionMap.get("followName")==null
+                ||conditionMap.get("signalName")==null){
+            log.error("getUserCloseOrders null params!");
+            throw new DataConflictException("addAccountFollowRelation null params!");
+        }
+
+        int signalName=Integer.parseInt(String.valueOf(conditionMap.get("signalName")));
+        int followName=Integer.parseInt(String.valueOf(conditionMap.get("followName")));
+
+        return accountInfoService.removeAccountFollowRelation(signalName,followName);
     }
 }

@@ -76,20 +76,32 @@ public class TradeUtil {
     }
 
     /**
+     * 获得订单备注
+     * @param followName
+     * @param signalName
+     * @param signalOrderId
+     * @return
+     */
+    public static String getComment(int followName,int signalName,int signalOrderId){
+        return followName+":"+signalName+":"+signalOrderId;
+    }
+
+    /**
      * 校验magic是否合规
      * @param comment
      * @param magic
      * @return
      */
     public static boolean checkMagic(String comment,int magic){
-        if(StringUtils.isEmpty(comment)){
+        if(StringUtils.isEmpty(comment)||magic==0){
             return false;
         }
         String[] followInfo=comment.split(":");
         try {
             int followName=Integer.parseInt(followInfo[0]);
-            int orderId=Integer.parseInt(followInfo[1]);
-            int newMagic=getMagic(followName,orderId);
+            int signalName=Integer.parseInt(followInfo[1]);
+            int signalOrderId=Integer.parseInt(followInfo[2]);
+            int newMagic=getMagic(followName,signalName,signalOrderId);
             if(magic!=newMagic){
                 return false;
             }
@@ -100,13 +112,14 @@ public class TradeUtil {
     }
 
     /**
-     * 根据跟随账号和信号源订单生成跟随magic
+     * 根据跟随账号和信号源信息生成跟随magic
      * @param followName
-     * @param orderId
+     * @param signalName
+     * @param signalOrderId
      * @return
      */
-    public static int getMagic(int followName,int orderId){
-        int magic=OrderConstant.ORDER_FOLLOW_MAGIC>>2|followName<<4&orderId<<3;
+    public static int getMagic(int followName,int signalName,int signalOrderId){
+        int magic=signalName<<1&OrderConstant.ORDER_FOLLOW_MAGIC>>2|followName<<4&signalOrderId<<3;
         return magic%1000000;
     }
 }

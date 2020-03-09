@@ -2,18 +2,18 @@ package com.future.trader.service;
 
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.future.trader.api.*;
 import com.future.trader.bean.TradeRecordInfo;
+import com.future.trader.common.constants.OrderConstant;
 import com.future.trader.common.constants.RedisConstant;
+import com.future.trader.common.enums.OrderTypeEnum;
+import com.future.trader.common.enums.TradeErrorEnum;
 import com.future.trader.common.exception.BusinessException;
 import com.future.trader.common.exception.DataConflictException;
-import com.future.trader.common.helper.PageInfoHelper;
 import com.future.trader.util.RedisManager;
 import com.future.trader.util.StringUtils;
 import com.future.trader.util.TradeUtil;
-import com.github.pagehelper.PageInfo;
 import com.sun.jna.ptr.IntByReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -368,31 +368,26 @@ public class OrderInfoService {
      * @param comment
      * @param current
      * @param times
-     * @return
+     * @return (返回错误码)
      */
-    public boolean orderTradeRetrySyn(int clientId,OrderLibrary.TradeRecord tradeRecord,int magic,String comment,int current, int times){
+    public int orderTradeRetrySyn(int clientId,OrderLibrary.TradeRecord tradeRecord,int magic,String comment,int current, int times){
 
-        OrderLibrary.TradeRecord.ByReference orderSend = new OrderLibrary.TradeRecord.ByReference();
         QuoteLibrary.QuoteEventInfo.ByReference quoteInfo = new QuoteLibrary.QuoteEventInfo.ByReference();
 
         //循环获取行情信息，直到获取到最新的行情信息
-        while (!QuoteLibrary.library.MT4API_GetQuote(clientId, new String(tradeRecord.symbol), quoteInfo)) {
-            try {
+        try {
+            while (!QuoteLibrary.library.MT4API_GetQuote(clientId, new String(tradeRecord.symbol), quoteInfo)) {
                 TimeUnit.MILLISECONDS.sleep(100);
-            } catch (Exception e) {
-                log.error(e.getMessage(),e);
-                return false;
             }
+        } catch (Exception e) {
+            log.error(e.getMessage(),e);
+            return TradeErrorEnum.QUOTE_GET_ERROR.code();
         }
 
+        //注意转换
         double volume=tradeRecord.volume*0.01;
-        /*int ieDeviation =*/
         long time = LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().getEpochSecond();
 
-        /*boolean isTrade = TraderLibrary.library.MT4API_OrderSend(clientId, new String(tradeRecord.symbol).trim(),
-                (byte) tradeRecord.cmd, volume,
-                quoteInfo.fAsk, 40, tradeRecord.stoploss, tradeRecord.takeprofit,
-                ""+tradeRecord.login, tradeRecord.order, (int) time + 24 * 60 * 60, orderSend)*/;
         //异步提交
         int isTrade = TraderLibrary.library.MT4API_OrderSendAsync(clientId, new String(tradeRecord.symbol).trim(),
                 (byte) tradeRecord.cmd, volume,
@@ -402,14 +397,14 @@ public class OrderInfoService {
         log.info("交易信息：isTrade:"+isTrade);
         if (isTrade>0) {
             log.info("交易信息：success! isTrade,times:"+current);
-            return true;
+            return TradeErrorEnum.SUCCESS.code();
         } else {
             TradeUtil.printError(clientId);
             log.info("跟单信息：fail! times:"+current);
             if(current>=times){
                 //达到次数
                 log.error("跟单信息：fail finally! times:"+current);
-                return false;
+                return TradeErrorEnum.ORDER_OPEN_SYN_FAIL.code();
             }
             /*一直请求 知道成功或者达到次数*/
             return orderTradeRetrySyn(clientId,tradeRecord,magic,comment,current+1,times);
@@ -427,7 +422,6 @@ public class OrderInfoService {
         try {
             SymbolInfoLibrary.library.MT4API_GetSymbolsCount(clientId, symbolCount);
             log.info("服务端支持的证劵个数：" + symbolCount.getValue());
-            /*String symbolName = "EURUSD";*/
             boolean getInfo= SymbolInfoLibrary.library.MT4API_GetSymbolInfo(clientId, symbolName, symbolInfo);
             log.info("获取证券信息 "+symbolName+":"+getInfo);
             if(!getInfo){
@@ -491,7 +485,7 @@ public class OrderInfoService {
                     + "nDigits : " + quoteInfo.nDigits + ","
             );
             isTrade = TraderLibrary.library.MT4API_OrderSend(clientId, new String(tradeRecord.symbol).trim(),
-                    (byte) tradeRecord.cmd, tradeRecord.volume,
+                    (byte) tradeRecord.cmd, tradeRecord.volume*0.01,
                     quoteInfo.fAsk, quoteInfo.nDigits, tradeRecord.stoploss, tradeRecord.takeprofit,
                     "", tradeRecord.magic, (int) time + 24 * 60 * 60, orderSend);
             if (isTrade) {
@@ -522,39 +516,41 @@ public class OrderInfoService {
      * @param volume
      * @return
      */
-    public boolean sendOrderCloseAsync(int clientId,int orderId,String symbol,double volume){
+    public int sendOrderCloseAsync(int clientId,int orderId,String symbol,double volume){
 
         if(clientId==0||orderId==0||volume==0|| StringUtils.isEmpty(symbol)){
             log.info("关闭订单 异步, 参数为空!");
-            throw new BusinessException("关闭订单 异步, 参数为空!");
+            return TradeErrorEnum.PARAM_NULL_ERROR.code();
         }
-
         if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
             log.info("connect borker false, clientId error!");
-            throw new BusinessException("connect borker false, clientId error!");
+            return TradeErrorEnum.ACC_DIS_CONNECT.code();
         }
         QuoteLibrary.QuoteEventInfo.ByReference quoteInfo = new QuoteLibrary.QuoteEventInfo.ByReference();
-        //循环获取行情信息，直到获取到最新的行情信息
-        while (!QuoteLibrary.library.MT4API_GetQuote(clientId, symbol, quoteInfo)) {
-            try {
+        try {
+            //循环获取行情信息，直到获取到最新的行情信息
+            while (!QuoteLibrary.library.MT4API_GetQuote(clientId, symbol, quoteInfo)) {
                 TimeUnit.MILLISECONDS.sleep(100);
-            } catch (Exception e) {
-                log.error(e.getMessage(),e);
-                throw new BusinessException(e);
             }
+        } catch (Exception e) {
+            log.error(e.getMessage(),e);
+            return TradeErrorEnum.QUOTE_GET_ERROR.code();
         }
 
+        /*发送异步关闭请求*/
         if(TraderLibrary.library.MT4API_IsTradeAllowed(clientId)){
             int isSend= TraderLibrary.library.MT4API_OrderCloseAsync(clientId,symbol,orderId,
                     volume,quoteInfo.fAsk,40);
             if (isSend>0) {
                 log.info("order close success! isSend,orderid:"+orderId);
+                return TradeErrorEnum.SUCCESS.code();
             } else {
                 TradeUtil.printError(clientId);
-                throw new BusinessException("order close fail!");
+                return TradeErrorEnum.ORDER_CLOSE_SYN_FAIL.code();
             }
+        }else {
+            return TradeErrorEnum.TRADE_NOT_ALLOWED.code();
         }
-        return true;
     }
 
 
@@ -599,5 +595,106 @@ public class OrderInfoService {
             }
         }
         return true;
+    }
+
+
+    /**
+     * 处理跟单开仓逻辑
+     * @param signalRecord
+     * @param followRule
+     * @return
+     */
+    public OrderLibrary.TradeRecord followOpenLogic(OrderLibrary.TradeRecord signalRecord,JSONObject followRule){
+        OrderLibrary.TradeRecord.ByReference orderSend = new OrderLibrary.TradeRecord.ByReference();
+        try {
+            if(signalRecord==null||followRule==null){
+                log.error("处理跟单开仓逻辑,传入数据为空！");
+                return null;
+            }
+            /*判断订单类型*/
+            if(signalRecord.cmd!= OrderTypeEnum.OP_BUY.code()
+                &&signalRecord.cmd!= OrderTypeEnum.OP_SELL.code()
+                    &&signalRecord.cmd!= OrderTypeEnum.OP_BUY_LIMIT.code()
+                    &&signalRecord.cmd!= OrderTypeEnum.OP_SELL_LIMIT.code()
+                    &&signalRecord.cmd!= OrderTypeEnum.OP_BUY_STOP.code()
+                    &&signalRecord.cmd!= OrderTypeEnum.OP_SELL_STOP.code()){
+                log.error("处理跟单开仓逻辑,开仓类型无效！cmd:"+signalRecord.cmd);
+                return null;
+            }
+
+            //跟单方向（0 正向跟单，1  反向跟单）
+            int followDirect=followRule.getInteger("followDirect");
+            //跟单模式（0 多空跟单，1 只跟多单，2 只跟空单）
+            int followMode=followRule.getInteger("followMode");
+            //跟单类型（0 按手数比例，1 按固定金额，2 按固定手数）
+            int followType=followRule.getInteger("followType");;
+            //跟单数量/系数
+            Double followAmount= followRule.getBigDecimal("followAmount").doubleValue();
+
+            orderSend.order=signalRecord.order;
+            orderSend.symbol=signalRecord.symbol;
+            orderSend.stoploss=signalRecord.stoploss;
+            orderSend.takeprofit=signalRecord.takeprofit;
+            //1、判断跟单模式（0 多空跟单，1 只跟多单，2 只跟空单）
+
+            //2、判断跟单方向
+            if(followDirect== OrderConstant.ORDER_FOLLOW_DIRECT_FORWARD){
+                //正向
+                orderSend.cmd=signalRecord.cmd;
+            }else {
+                //反向
+                if(signalRecord.cmd!= OrderTypeEnum.OP_BUY.code()){
+                    orderSend.cmd=OrderTypeEnum.OP_SELL.code();
+                }
+                if(signalRecord.cmd!= OrderTypeEnum.OP_SELL.code()){
+                    orderSend.cmd=OrderTypeEnum.OP_BUY.code();
+                }
+                if(signalRecord.cmd!= OrderTypeEnum.OP_BUY_LIMIT.code()){
+                    orderSend.cmd=OrderTypeEnum.OP_SELL_LIMIT.code();
+                }
+                if(signalRecord.cmd!= OrderTypeEnum.OP_SELL_LIMIT.code()){
+                    orderSend.cmd=OrderTypeEnum.OP_BUY_LIMIT.code();
+                }
+                if(signalRecord.cmd!= OrderTypeEnum.OP_BUY_STOP.code()){
+                    orderSend.cmd=OrderTypeEnum.OP_SELL_STOP.code();
+                }
+                if(signalRecord.cmd!= OrderTypeEnum.OP_SELL_STOP.code()){
+                    orderSend.cmd=OrderTypeEnum.OP_BUY_STOP.code();
+                }
+            }
+
+            //根据规则确定手数  (0 按手数比例；1 按固定金额；2 按固定手数)（最低净值/最低净值百分比）
+            if(followType==OrderConstant.ORDER_FOLLOW_TYPE_HANDS_RATE){
+                //0 按手数比例
+                Double lots=signalRecord.volume*followAmount;
+                if(lots.intValue()>=1){
+                    orderSend.volume=lots.intValue();
+                }else {
+                    orderSend.volume=1;
+                }
+            }else if(followType==OrderConstant.ORDER_FOLLOW_TYPE_AMOUNT_FIXED){
+                //1 按固定金额
+                Double lots=followAmount/signalRecord.open_price;
+                if(lots.intValue()>=1){
+                    orderSend.volume=lots.intValue();
+                }else {
+                    orderSend.volume=1;
+                }
+            }else if(followType==OrderConstant.ORDER_FOLLOW_TYPE_HANDS_FIXED){
+                //2 按固定手数
+                if(followAmount.intValue()>=1){
+                    orderSend.volume=followAmount.intValue();
+                }else {
+                    orderSend.volume=1;
+                }
+            }
+            // 判断是否达到上线金额
+            // 判断是否超过 最低净值/最低净值百分比
+
+        }catch (Exception e){
+            log.error(e.getMessage(),e);
+            // TODO 写入日志
+        }
+        return orderSend;
     }
 }
