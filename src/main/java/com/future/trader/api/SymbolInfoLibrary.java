@@ -78,23 +78,23 @@ public interface SymbolInfoLibrary extends Library {
         public static class ByValue extends SymbolInfo implements Structure.ByValue{};
 
         public SymbolInfo() {
-            symbol = new byte[12];
+           /* symbol = new byte[12];
             description = new byte[64];
             source = new byte[12];
             currency = new byte[12];
             external_unused = new int[7];
             sessions = new ConSessions.ByReference[7];
             margin_currency = new byte[12];
-            unused = new int[21];
+            unused = new int[21];*/
         }
 
         /**
          * common settings
          */
-        public byte[] symbol;
-        public byte[] description;
-        public byte[] source;
-        public byte[] currency;
+        public byte[] symbol = new byte[12];
+        public byte[] description = new byte[64];
+        public byte[] source = new byte[12];
+        public byte[] currency = new byte[12];
         public int type;
         public int digits;
         public int trade;
@@ -105,7 +105,7 @@ public interface SymbolInfoLibrary extends Library {
         public int background_color;
         public int count;
         public int count_original;
-        public int[] external_unused;
+        public int[] external_unused = new int[7];
 
         /**
          * sessions
@@ -113,7 +113,7 @@ public interface SymbolInfoLibrary extends Library {
         public int realtime;
         public int starting;
         public int expiration;
-        public ConSessions.ByReference[] sessions;
+        public ConSessions.ByReference[] sessions = new ConSessions.ByReference[7];
 
         /**
          * profits
@@ -168,7 +168,7 @@ public interface SymbolInfoLibrary extends Library {
         public int long_only;
         public int instant_max_volume;
 
-        public byte[] margin_currency;
+        public byte[] margin_currency = new byte[12];
         public int freeze_level;
         public int margin_hedged_strong;
         public int value_date;
@@ -176,7 +176,7 @@ public interface SymbolInfoLibrary extends Library {
         public int swap_openprice;
         public int swap_variation_margin;
 
-        public int[] unused;
+        public int[] unused = new int[21];
 
         @Override
         protected List<String> getFieldOrder() {
@@ -204,11 +204,11 @@ public interface SymbolInfoLibrary extends Library {
             reserved = new int[2];
         }
 
-        public ConSession.ByReference[] quote;
-        public ConSession.ByReference[] trade;
+        public ConSession.ByReference[] quote = new ConSession.ByReference[3];
+        public ConSession.ByReference[] trade = new ConSession.ByReference[3];
         public int quote_overnight;
         public int trade_overnight;
-        public int[] reserved;
+        public int[] reserved = new int[2];
 
         @Override
         protected List<String> getFieldOrder() {
@@ -230,7 +230,7 @@ public interface SymbolInfoLibrary extends Library {
         public short close_min;
         public int open;
         public int close;
-        public short[] align;
+        public short[] align = new short[7];
 
         @Override
         protected List<String> getFieldOrder() {

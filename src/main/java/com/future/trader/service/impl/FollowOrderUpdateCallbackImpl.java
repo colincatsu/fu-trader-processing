@@ -45,12 +45,12 @@ public class FollowOrderUpdateCallbackImpl implements FollowOrderUpdateCallback 
         if (OrderUpdateActionEnum.OUA_PositionOpen.getIntValue() == orderUpdateEventInfo.updateAction.ordinal()) {
             log.info("跟随订单开仓,跟随账号："+info.getLogin());
             //开仓
-            followCallbackOpen(info);
+            followCallbackOpen(info,OrderUpdateActionEnum.OUA_PositionOpen.getIntValue());
             log.info("跟随订单开仓,跟随订单号："+info.getOrder());
         }else if (OrderUpdateActionEnum.OUA_PositionClose.getIntValue() == orderUpdateEventInfo.updateAction.ordinal()) {
             log.info("跟随订单平仓,跟随账号："+info.getLogin());
             // 平仓
-            followCallbackClose(info);
+            followCallbackClose(info,OrderUpdateActionEnum.OUA_PositionClose.getIntValue());
             log.info("跟随订单平仓,跟随订单号："+info.getOrder());
         }else {
             log.info("跟随订单其他交易,跟随账号："+info.getLogin());
@@ -61,8 +61,9 @@ public class FollowOrderUpdateCallbackImpl implements FollowOrderUpdateCallback 
     /**
      * 跟随订单变更 开仓逻辑
      * @param info
+     * @param orderAction
      */
-    public void followCallbackOpen(TradeRecordInfo info){
+    public void followCallbackOpen(TradeRecordInfo info,int orderAction){
         if(StringUtils.isEmpty(info.getComment())){
             log.error("跟单信息错误！ 缺少跟单关系");
         }
@@ -72,6 +73,7 @@ public class FollowOrderUpdateCallbackImpl implements FollowOrderUpdateCallback 
         orderJson.put("followName",followInfo[0]);
         orderJson.put("signalName",followInfo[1]);
         orderJson.put("signalOrderId",followInfo[2]);
+        orderJson.put("orderAction",orderAction);
 
         /*将跟单关系保存在redis*/
         redisManager.hset(RedisConstant.H_ORDER_FOLLOW_ORDER_RELATION,info.getComment(),info.getOrder());
@@ -88,8 +90,9 @@ public class FollowOrderUpdateCallbackImpl implements FollowOrderUpdateCallback 
     /**
      * 跟随订单变更 平仓逻辑
      * @param info
+     * @param orderAction
      */
-    public void followCallbackClose(TradeRecordInfo info){
+    public void followCallbackClose(TradeRecordInfo info,int orderAction){
 
         if(StringUtils.isEmpty(info.getComment())){
             log.error("跟单信息错误！ 缺少跟单关系");
@@ -100,6 +103,7 @@ public class FollowOrderUpdateCallbackImpl implements FollowOrderUpdateCallback 
         orderJson.put("followName",followInfo[0]);
         orderJson.put("signalName",followInfo[1]);
         orderJson.put("signalOrderId",followInfo[2]);
+        orderJson.put("orderAction",orderAction);
 
         /*删除跟单关系*/
         redisManager.hdel(RedisConstant.H_ORDER_FOLLOW_ORDER_RELATION,info.getComment());

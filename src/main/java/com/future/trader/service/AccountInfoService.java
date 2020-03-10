@@ -53,6 +53,19 @@ public class AccountInfoService {
             log.error("设置信号源账户 监听,传入传入参数为空！");
             throw new DataConflictException("设置信号源账户 监听,传入传入参数为空！");
         }
+        Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+        if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
+            int currentClientId=(Integer)accountClientId;
+            if (ConnectLibrary.library.MT4API_IsConnect(currentClientId)) {
+                /*已连接 直接返回*/
+                log.info("client already connected!");
+                return currentClientId;
+            }else {
+                /*未连接 删除数据 避免冗余*/
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(currentClientId));
+            }
+        }
         int clientId = connectionService.getUserConnectWithConnectCallback(serverName,username,password);
         if(clientId==0){
             // 初始化失败！
@@ -123,12 +136,21 @@ public class AccountInfoService {
      * @return
      */
     public int setAccountConnect(String serverName,int username,String password){
+        if(StringUtils.isEmpty(serverName)||StringUtils.isEmpty(password)||username==0){
+            log.error("设置链接账户,传入传入参数为空！");
+            throw new DataConflictException("设置链接账户,传入传入参数为空！");
+        }
         Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
         if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
             int currentClientId=(Integer)accountClientId;
             if (ConnectLibrary.library.MT4API_IsConnect(currentClientId)) {
+                /*已连接 直接返回*/
                 log.info("client already connected!");
                 return currentClientId;
+            }else {
+                /*未连接 删除数据 避免冗余*/
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(currentClientId));
             }
         }
         int clientId = connectionService.getUserConnectWithConnectCallback(serverName,username,password);
@@ -309,7 +331,6 @@ public class AccountInfoService {
         if(clientId==0){
             return false;
         }
-        //TODO /*事先查询下在仓订单 不然监听会失败*/
 //        orderInfoService.obtainOpenOrderInfo(clientId);
 //        OrderUpdateCallback updateCallback = new OrderUpdateCallbackImpl();
         TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, signalOrderUpdateCallbackImpl, clientId);

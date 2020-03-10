@@ -29,7 +29,7 @@ public class AccountController {
 
         if(conditionMap==null||conditionMap.get("serverName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
-            log.error("getUserCloseOrders null params!");
+            log.error("setSignalMonitor null params!");
             throw new DataConflictException("setSignalMonitor null params!");
         }
 
@@ -67,7 +67,7 @@ public class AccountController {
 
         if(conditionMap==null||conditionMap.get("serverName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
-            log.error("setAccountConnnect null params!");
+            log.error("setAccountDisConnect null params!");
             throw new DataConflictException("setAccountConnnect null params!");
         }
         String serverName=String.valueOf(conditionMap.get("serverName"));
@@ -84,15 +84,15 @@ public class AccountController {
         Map conditionMap = requestParams.getParams();
 
         if(conditionMap==null||conditionMap.get("followName")==null
-                ||conditionMap.get("signalName")==null){
-            log.error("getUserCloseOrders null params!");
+                ||conditionMap.get("signalName")==null||conditionMap.get("followRule")==null){
+            log.error("addAccountFollowRelation null params!");
             throw new DataConflictException("addAccountFollowRelation null params!");
         }
 
         int signalName=Integer.parseInt(String.valueOf(conditionMap.get("signalName")));
         int followName=Integer.parseInt(String.valueOf(conditionMap.get("followName")));
-        String followRule=String.valueOf(conditionMap.get("followRule"));
-
+        String followRule=JSON.toJSONString(conditionMap.get("followRule"));
+        log.info(followRule);
         return accountInfoService.addAccountFollowRelation(signalName,followName, JSON.parseObject(followRule));
     }
 

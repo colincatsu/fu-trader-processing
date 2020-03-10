@@ -372,9 +372,17 @@ public class OrderInfoService {
      */
     public int orderTradeRetrySyn(int clientId,OrderLibrary.TradeRecord tradeRecord,int magic,String comment,int current, int times){
 
-        QuoteLibrary.QuoteEventInfo.ByReference quoteInfo = new QuoteLibrary.QuoteEventInfo.ByReference();
-
+        if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+            log.info("connect borker false, clientId error!");
+            return TradeErrorEnum.ACC_DIS_CONNECT.code();
+        }
+        if(!TraderLibrary.library.MT4API_IsTradeAllowed(clientId)){
+            log.error("MT4API_IsTradeAllowed false!");
+            TradeUtil.printError(clientId);
+            return TradeErrorEnum.TRADE_NOT_ALLOWED.code();
+        }
         //循环获取行情信息，直到获取到最新的行情信息
+        QuoteLibrary.QuoteEventInfo.ByReference quoteInfo = new QuoteLibrary.QuoteEventInfo.ByReference();
         try {
             while (!QuoteLibrary.library.MT4API_GetQuote(clientId, new String(tradeRecord.symbol), quoteInfo)) {
                 TimeUnit.MILLISECONDS.sleep(100);
@@ -391,7 +399,7 @@ public class OrderInfoService {
         //异步提交
         int isTrade = TraderLibrary.library.MT4API_OrderSendAsync(clientId, new String(tradeRecord.symbol).trim(),
                 (byte) tradeRecord.cmd, volume,
-                quoteInfo.fAsk, 40, tradeRecord.stoploss, tradeRecord.takeprofit,
+                quoteInfo.fAsk, 30, tradeRecord.stoploss, tradeRecord.takeprofit,
                 comment, magic, (int) time + 24 * 60 * 60);
 
         log.info("交易信息：isTrade:"+isTrade);
@@ -516,7 +524,7 @@ public class OrderInfoService {
      * @param volume
      * @return
      */
-    public int sendOrderCloseAsync(int clientId,int orderId,String symbol,double volume){
+    public int sendOrderCloseAsync(int clientId,int orderId,String symbol,int volume){
 
         if(clientId==0||orderId==0||volume==0|| StringUtils.isEmpty(symbol)){
             log.info("关闭订单 异步, 参数为空!");
@@ -526,9 +534,14 @@ public class OrderInfoService {
             log.info("connect borker false, clientId error!");
             return TradeErrorEnum.ACC_DIS_CONNECT.code();
         }
+
+        if(!TraderLibrary.library.MT4API_IsTradeAllowed(clientId)){
+            return TradeErrorEnum.TRADE_NOT_ALLOWED.code();
+        }
+
+        //循环获取行情信息，直到获取到最新的行情信息
         QuoteLibrary.QuoteEventInfo.ByReference quoteInfo = new QuoteLibrary.QuoteEventInfo.ByReference();
         try {
-            //循环获取行情信息，直到获取到最新的行情信息
             while (!QuoteLibrary.library.MT4API_GetQuote(clientId, symbol, quoteInfo)) {
                 TimeUnit.MILLISECONDS.sleep(100);
             }
@@ -538,18 +551,14 @@ public class OrderInfoService {
         }
 
         /*发送异步关闭请求*/
-        if(TraderLibrary.library.MT4API_IsTradeAllowed(clientId)){
-            int isSend= TraderLibrary.library.MT4API_OrderCloseAsync(clientId,symbol,orderId,
-                    volume,quoteInfo.fAsk,40);
-            if (isSend>0) {
-                log.info("order close success! isSend,orderid:"+orderId);
-                return TradeErrorEnum.SUCCESS.code();
-            } else {
-                TradeUtil.printError(clientId);
-                return TradeErrorEnum.ORDER_CLOSE_SYN_FAIL.code();
-            }
-        }else {
-            return TradeErrorEnum.TRADE_NOT_ALLOWED.code();
+        int isSend= TraderLibrary.library.MT4API_OrderCloseAsync(clientId,symbol,orderId,
+                volume*0.01,quoteInfo.fAsk,30);
+        if (isSend>0) {
+            log.info("order close success! isSend,orderid:"+orderId);
+            return TradeErrorEnum.SUCCESS.code();
+        } else {
+            TradeUtil.printError(clientId);
+            return TradeErrorEnum.ORDER_CLOSE_SYN_FAIL.code();
         }
     }
 
@@ -562,7 +571,7 @@ public class OrderInfoService {
      * @param volume
      * @return
      */
-    public boolean sendOrderClose(int clientId,int orderId,String symbol,double volume){
+    public boolean sendOrderClose(int clientId,int orderId,String symbol,int volume){
 
         if(clientId==0||orderId==0||volume==0|| StringUtils.isEmpty(symbol)){
             log.info("关闭订单 异步, 参数为空!");
@@ -586,7 +595,7 @@ public class OrderInfoService {
         OrderLibrary.TradeRecord.ByReference orderSend = new OrderLibrary.TradeRecord.ByReference();
         if(TraderLibrary.library.MT4API_IsTradeAllowed(clientId)){
             boolean isSend= TraderLibrary.library.MT4API_OrderClose(clientId,symbol,orderId,
-                    volume,quoteInfo.fAsk,40,orderSend);
+                    volume*0.01,quoteInfo.fAsk,30,orderSend);
             if (isSend) {
                 log.info("order close success! isSend,orderid:"+orderId);
             } else {
@@ -622,13 +631,25 @@ public class OrderInfoService {
             }
 
             //跟单方向（0 正向跟单，1  反向跟单）
-            int followDirect=followRule.getInteger("followDirect");
+            int followDirect=0;
             //跟单模式（0 多空跟单，1 只跟多单，2 只跟空单）
-            int followMode=followRule.getInteger("followMode");
+            int followMode=0;
             //跟单类型（0 按手数比例，1 按固定金额，2 按固定手数）
-            int followType=followRule.getInteger("followType");;
+            int followType=0;
             //跟单数量/系数
-            Double followAmount= followRule.getBigDecimal("followAmount").doubleValue();
+            Double followAmount=0.0;
+            if(followRule.getInteger("followDirect")!=null){
+                followDirect=followRule.getInteger("followDirect");
+            }
+            if(followRule.getInteger("followMode")!=null){
+                followMode=followRule.getInteger("followMode");
+            }
+            if(followRule.getInteger("followType")!=null){
+                followType=followRule.getInteger("followType");
+            }
+            if(followRule.getBigDecimal("followAmount")!=null){
+                followAmount= followRule.getBigDecimal("followAmount").doubleValue();
+            }
 
             orderSend.order=signalRecord.order;
             orderSend.symbol=signalRecord.symbol;
@@ -642,23 +663,20 @@ public class OrderInfoService {
                 orderSend.cmd=signalRecord.cmd;
             }else {
                 //反向
-                if(signalRecord.cmd!= OrderTypeEnum.OP_BUY.code()){
+                if(signalRecord.cmd == OrderTypeEnum.OP_BUY.code()){
                     orderSend.cmd=OrderTypeEnum.OP_SELL.code();
-                }
-                if(signalRecord.cmd!= OrderTypeEnum.OP_SELL.code()){
+                }else if(signalRecord.cmd== OrderTypeEnum.OP_SELL.code()){
                     orderSend.cmd=OrderTypeEnum.OP_BUY.code();
-                }
-                if(signalRecord.cmd!= OrderTypeEnum.OP_BUY_LIMIT.code()){
+                }else if(signalRecord.cmd== OrderTypeEnum.OP_BUY_LIMIT.code()){
                     orderSend.cmd=OrderTypeEnum.OP_SELL_LIMIT.code();
-                }
-                if(signalRecord.cmd!= OrderTypeEnum.OP_SELL_LIMIT.code()){
+                }else if(signalRecord.cmd== OrderTypeEnum.OP_SELL_LIMIT.code()){
                     orderSend.cmd=OrderTypeEnum.OP_BUY_LIMIT.code();
-                }
-                if(signalRecord.cmd!= OrderTypeEnum.OP_BUY_STOP.code()){
+                }else if(signalRecord.cmd== OrderTypeEnum.OP_BUY_STOP.code()){
                     orderSend.cmd=OrderTypeEnum.OP_SELL_STOP.code();
-                }
-                if(signalRecord.cmd!= OrderTypeEnum.OP_SELL_STOP.code()){
+                }else if(signalRecord.cmd== OrderTypeEnum.OP_SELL_STOP.code()){
                     orderSend.cmd=OrderTypeEnum.OP_BUY_STOP.code();
+                }else {
+                    return TradeErrorEnum.ORDER_CMD_ERROR.code();
                 }
             }
 
@@ -689,7 +707,9 @@ public class OrderInfoService {
             }
             // 判断是否达到上线金额
             // 判断是否超过 最低净值/最低净值百分比
-
+            if(orderSend.volume==0){
+                return TradeErrorEnum.ORDER_VOLUME_ERROR.code();
+            }
         }catch (Exception e){
             log.error(e.getMessage(),e);
             return TradeErrorEnum.FOLLOW_RULE_DEAL_ERROR.code();

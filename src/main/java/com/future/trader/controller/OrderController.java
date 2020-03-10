@@ -74,7 +74,7 @@ public class OrderController {
         int clientId=Integer.parseInt(String.valueOf(conditionMap.get("clientId")));
         int orderId=Integer.parseInt(String.valueOf(conditionMap.get("orderId")));
         String symbol= String.valueOf(conditionMap.get("symbol"));
-        double volume=Double.valueOf(String.valueOf(conditionMap.get("volume")));
+        int volume=Integer.valueOf(String.valueOf(conditionMap.get("volume")));
 
         return orderInfoService.sendOrderCloseAsync(clientId,orderId,symbol,volume);
     }
@@ -92,7 +92,7 @@ public class OrderController {
         int clientId=Integer.parseInt(String.valueOf(conditionMap.get("clientId")));
         int orderId=Integer.parseInt(String.valueOf(conditionMap.get("orderId")));
         String symbol= String.valueOf(conditionMap.get("symbol"));
-        double volume=Double.valueOf(String.valueOf(conditionMap.get("volume")));
+        int volume=Integer.valueOf(String.valueOf(conditionMap.get("volume")));
 
         return orderInfoService.sendOrderClose(clientId,orderId,symbol,volume);
     }

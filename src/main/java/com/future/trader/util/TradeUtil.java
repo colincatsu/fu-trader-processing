@@ -122,4 +122,21 @@ public class TradeUtil {
         int magic=signalName<<1&OrderConstant.ORDER_FOLLOW_MAGIC>>2|followName<<4&signalOrderId<<3;
         return magic%1000000;
     }
+
+    /**
+     * 根据跟随账号和信号源信息生成跟随magic
+     * @param comment
+     * @return
+     */
+    public static int getMagic(String comment){
+        String[] followInfo=comment.split(":");
+        try {
+            int followName=Integer.parseInt(followInfo[0]);
+            int signalName=Integer.parseInt(followInfo[1]);
+            int signalOrderId=Integer.parseInt(followInfo[2]);
+            return getMagic(followName,signalName,signalOrderId);
+        }catch (Exception e){
+            return 0;
+        }
+    }
 }

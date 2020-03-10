@@ -18,6 +18,9 @@ public enum TradeErrorEnum {
     ORDER_OPEN_FAIL(6, "订单open同步提交失败"),
     ORDER_CLOSE_SYN_FAIL(7, "订单close异步提交失败"),
     ORDER_CLOSE_FAIL(8, "订单close同步提交失败"),
+    ORDER_VOLUME_ERROR(8, "订单手数计算错误"),
+    ORDER_MAGIC_ERROR(8, "订单magic计算错误"),
+    ORDER_CMD_ERROR(8, "订单类型错误"),
     PARAM_NULL_ERROR(9, "参数为空"),
     FOLLOW_RULE_DATA_ERROR(9, "跟单规则获取异常"),
     FOLLOW_ORDER_TYPE_MATCH_ERROR(9, "跟单订单类型匹配异常"),
@@ -74,6 +77,18 @@ public enum TradeErrorEnum {
         for (TradeErrorEnum item : TradeErrorEnum.values()) {
             if (item.message.equals(message)) {
                 return item.code;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 通过枚举值获取状态码
+     */
+    public static String getMessage(Integer code) {
+        for (TradeErrorEnum item : TradeErrorEnum.values()) {
+            if (item.code.equals(code)) {
+                return item.message;
             }
         }
         return null;

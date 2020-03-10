@@ -62,6 +62,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
             dataJson.clear();
             dataJson.put("order",JSON.parseObject(JSON.toJSONString(orderUpdateEventInfo)));
             dataJson.put("followRule",followJson.getJSONObject(jsonKey));
+            dataJson.put("updateAction",orderUpdateEventInfo.updateAction.ordinal());
             int followName= Integer.parseInt(jsonKey);
             String comment=TradeUtil.getComment(followName,tradeRecord.login,tradeRecord.order);
             //TODO 账号跟随规则校验
@@ -79,7 +80,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                         redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,dataJson);
                     }
                     //开仓
-                    int result= followTradeOpen(followRecord,followName);
+                    int result= followTradeOpen(followRecord,followName,comment);
                     if(result>TradeErrorEnum.SUCCESS.code()){
                         //异常订单入库
                         log.error("信号源订单开仓 处理失败,跟随账号："+followName);
@@ -98,8 +99,18 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                         return;
                     }
                     log.info("信号源订单平仓,跟随账号："+followName);
+                    // 跟单逻辑
+                    OrderLibrary.TradeRecord.ByReference followRecord = new OrderLibrary.TradeRecord.ByReference();
+                    int isMatch= orderInfoService.followOpenLogic(tradeRecord,followRecord,followJson.getJSONObject(jsonKey));
+                    if(isMatch>TradeErrorEnum.SUCCESS.code()){
+                        //异常订单入库
+                        log.error("信号源订单关闭 跟单规则匹配失败,跟随账号："+followName);
+                        dataJson.put("errorCode",isMatch);
+                        redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,dataJson);
+                    }
                     // 平仓
-                    int result=followTradeClose(tradeRecord,followName,(int)followOrder);
+                    String symbol=new String(tradeRecord.symbol).trim();
+                    int result=followTradeClose(symbol,followRecord.volume,followName,(int)followOrder);
                     if(result>TradeErrorEnum.SUCCESS.code()){
                         //异常订单入库
                         log.error("信号源订单平仓 处理失败,跟随账号："+followName);
@@ -125,21 +136,21 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
 
     /**
      * 订单跟随逻辑close
-     * @param tradeRecord
+     * @param symbol
+     * @param volume
      * @param followName
      * @param followOrderId
-     * @return 返回错误码
+     * @return
      */
-    private int followTradeClose(OrderLibrary.TradeRecord tradeRecord,int followName,int followOrderId) {
+    private int followTradeClose(String symbol,int volume,int followName,int followOrderId) {
         Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(followName));
         if(ObjectUtils.isEmpty(accountClientId)||(int)accountClientId==0){
             log.error("用户未连接："+followName);
             return TradeErrorEnum.ACC_DIS_CONNECT.code();
         }
         int clientId=(int)accountClientId;
-
         /*异步关闭订单*/
-        int sendCode= orderInfoService.sendOrderCloseAsync(clientId,followOrderId,new String(tradeRecord.symbol).trim(),tradeRecord.volume);
+        int sendCode= orderInfoService.sendOrderCloseAsync(clientId,followOrderId,symbol,volume);
         if (sendCode==TradeErrorEnum.SUCCESS.code()) {
             log.info("跟单信息：close success! isSend,followOrderid:"+followOrderId);
         } else {
@@ -151,8 +162,11 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
     /**
      * 订单跟随逻辑open (返回错误码 0为正常)
      * @param tradeRecord
+     * @param followName
+     * @param comment
+     * @return
      */
-    private int followTradeOpen(OrderLibrary.TradeRecord tradeRecord,int followName) {
+    private int followTradeOpen(OrderLibrary.TradeRecord tradeRecord,int followName,String comment) {
 
         Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(followName));
         if(ObjectUtils.isEmpty(accountClientId)||(int)accountClientId==0){
@@ -160,22 +174,18 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
             return TradeErrorEnum.ACC_DIS_CONNECT.code();
         }
         int clientId=(int)accountClientId;
-
-        if(TraderLibrary.library.MT4API_IsTradeAllowed(clientId)){
-            String comment=TradeUtil.getComment(followName,tradeRecord.login,tradeRecord.order);
-            int magic=TradeUtil.getMagic(followName,tradeRecord.login,tradeRecord.order);
-            //调用重复交易
-            int tradeResult=orderInfoService.orderTradeRetrySyn(clientId,tradeRecord,magic,comment,1,5);
-            if(tradeResult==TradeErrorEnum.SUCCESS.code()){
-                log.info("跟单信息：success! isTrade");
-            }else {
-                log.info("跟单信息：failure! isTrade");
-            }
-            return tradeResult;
-        }else {
-            log.error("MT4API_IsTradeAllowed false!");
-            TradeUtil.printError(clientId);
-            return TradeErrorEnum.TRADE_NOT_ALLOWED.code();
+        int magic=TradeUtil.getMagic(comment);
+        if(magic<=0){
+            return TradeErrorEnum.ORDER_MAGIC_ERROR.code();
         }
+        //调用重复交易
+        int tradeResult=orderInfoService.orderTradeRetrySyn(clientId,tradeRecord,magic,comment,1,5);
+        if(tradeResult==TradeErrorEnum.SUCCESS.code()){
+            log.info("跟单信息：success! isTrade");
+        }else {
+            log.info("跟单信息：failure! isTrade");
+        }
+        return tradeResult;
+
     }
 }
