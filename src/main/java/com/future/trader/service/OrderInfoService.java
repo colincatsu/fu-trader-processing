@@ -389,7 +389,7 @@ public class OrderInfoService {
             }
         } catch (Exception e) {
             log.error(e.getMessage(),e);
-            return TradeErrorEnum.QUOTE_GET_ERROR.code();
+            return TradeErrorEnum.ACC_QUOTE_GET_ERROR.code();
         }
 
         //注意转换
@@ -528,7 +528,7 @@ public class OrderInfoService {
 
         if(clientId==0||orderId==0||volume==0|| StringUtils.isEmpty(symbol)){
             log.info("关闭订单 异步, 参数为空!");
-            return TradeErrorEnum.PARAM_NULL_ERROR.code();
+            return TradeErrorEnum.TRADE_PARAM_NULL_ERROR.code();
         }
         if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
             log.info("connect borker false, clientId error!");
@@ -547,7 +547,7 @@ public class OrderInfoService {
             }
         } catch (Exception e) {
             log.error(e.getMessage(),e);
-            return TradeErrorEnum.QUOTE_GET_ERROR.code();
+            return TradeErrorEnum.ACC_QUOTE_GET_ERROR.code();
         }
 
         /*发送异步关闭请求*/

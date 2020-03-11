@@ -69,7 +69,7 @@ public class FollowOrderUpdateCallbackImpl implements FollowOrderUpdateCallback 
         }
         String[] followInfo=info.getComment().split(":");
         JSONObject orderJson=new JSONObject();
-        orderJson.put("followOrder",JSON.toJSONString(info));
+        orderJson.put("followOrder",JSONObject.parseObject(JSON.toJSONString(info)));
         orderJson.put("followName",followInfo[0]);
         orderJson.put("signalName",followInfo[1]);
         orderJson.put("signalOrderId",followInfo[2]);
@@ -99,18 +99,16 @@ public class FollowOrderUpdateCallbackImpl implements FollowOrderUpdateCallback 
         }
         String[] followInfo=info.getComment().split(":");
         JSONObject orderJson=new JSONObject();
-        orderJson.put("followOrder",JSON.toJSONString(info));
+        orderJson.put("followOrder",JSONObject.parseObject(JSON.toJSONString(info)));
         orderJson.put("followName",followInfo[0]);
         orderJson.put("signalName",followInfo[1]);
         orderJson.put("signalOrderId",followInfo[2]);
         orderJson.put("orderAction",orderAction);
 
-        /*删除跟单关系*/
-        redisManager.hdel(RedisConstant.H_ORDER_FOLLOW_ORDER_RELATION,info.getComment());
-
         /*将跟随订单保存至redis*/
         redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ORDERS,orderJson);
-
+        /*删除跟单关系*/
+        redisManager.hdel(RedisConstant.H_ORDER_FOLLOW_ORDER_RELATION,info.getComment());
         /*删除redis中正在平仓的订单*/
         redisManager.hdel(RedisConstant.H_ORDER_FOLLOW_CLOSING,info.getComment());
         /*删除redis中正在关闭数据*/

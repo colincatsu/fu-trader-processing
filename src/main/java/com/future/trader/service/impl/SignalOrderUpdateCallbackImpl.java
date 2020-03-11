@@ -90,7 +90,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                     //保存正在交易状态
                     redisManager.hset(RedisConstant.H_ORDER_FOLLOW_TRADING,comment,new Date().getTime());
                     //保存正在交易数据
-                    redisManager.hset(RedisConstant.H_ORDER_FOLLOW_TRADING_DATA,comment,dataJson.toJSONString());
+                    redisManager.hset(RedisConstant.H_ORDER_FOLLOW_TRADING_DATA,comment,dataJson);
                 }else if (OrderUpdateActionEnum.OUA_PositionClose.getIntValue() == orderUpdateEventInfo.updateAction.ordinal()) {
                     /*判断跟随关系*/
                     Object followOrder=redisManager.hget(RedisConstant.H_ORDER_FOLLOW_ORDER_RELATION,comment);
@@ -120,7 +120,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                     //保存正在关闭状态
                     redisManager.hset(RedisConstant.H_ORDER_FOLLOW_CLOSING,comment,new Date().getTime());
                     //保存正在关闭数据
-                    redisManager.hset(RedisConstant.H_ORDER_FOLLOW_CLOSING_DATA,comment,dataJson.toJSONString());
+                    redisManager.hset(RedisConstant.H_ORDER_FOLLOW_CLOSING_DATA,comment,dataJson);
                 }else {
                     log.info("信号源订单其他交易,跟随账号："+followName);
                     continue;
