@@ -59,6 +59,25 @@ public class AccountController {
         return accountInfoService.setAccountConnect(serverName,username,password);
     }
 
+    //链接账户
+    @RequestMapping(value= "/setAccountConnectTradeAllowed",method= RequestMethod.POST)
+    public @ResponseBody int setAccountConnectTradeAllowed(@RequestBody RequestParams<Map> requestParams){
+        // 获取请求参数
+        Map conditionMap = requestParams.getParams();
+
+        if(conditionMap==null||conditionMap.get("serverName")==null
+                ||conditionMap.get("username")==null||conditionMap.get("password")==null){
+            log.error("setAccountConnnect null params!");
+            throw new DataConflictException("setAccountConnnect null params!");
+        }
+
+        String serverName=String.valueOf(conditionMap.get("serverName"));
+        int username=Integer.parseInt(String.valueOf(conditionMap.get("username")));
+        String password=String.valueOf(conditionMap.get("password"));
+
+        return accountInfoService.setAccountConnectTradeAllowed(serverName,username,password);
+    }
+
     //断开链接账户
     @RequestMapping(value= "/setAccountDisConnect",method= RequestMethod.POST)
     public @ResponseBody boolean setAccountDisConnect(@RequestBody RequestParams<Map> requestParams){
