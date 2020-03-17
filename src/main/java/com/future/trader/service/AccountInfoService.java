@@ -4,6 +4,7 @@ package com.future.trader.service;
 import com.alibaba.fastjson.JSONObject;
 import com.future.trader.api.*;
 import com.future.trader.common.constants.RedisConstant;
+import com.future.trader.common.enums.TradeErrorEnum;
 import com.future.trader.common.exception.BusinessException;
 import com.future.trader.common.exception.DataConflictException;
 import com.future.trader.service.impl.OrderNotifyCallbackImpl;
@@ -24,6 +25,8 @@ import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.Map;
 
 @Service
 public class AccountInfoService {
@@ -119,6 +122,7 @@ public class AccountInfoService {
         JSONObject followJson=new JSONObject();
         if(ObjectUtils.isEmpty(object)){
             log.info("信号源 无跟单关系，signalName:"+signalName);
+            return true;
         }
         followJson=(JSONObject)object;
         followJson.remove(String.valueOf(followName));
@@ -158,6 +162,59 @@ public class AccountInfoService {
             // 初始化失败！
             log.error("client init error !");
             throw new BusinessException("client init error !");
+        }
+        /*设置订单结果回调*/
+        /*TraderLibrary.library.MT4API_SetOrderNotifyEventHandler(clientId, orderNotifyCallbackImpl, clientId);*/
+        /*设置跟随订单更新回调*/
+        TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, followOrderUpdateCallbackImpl, clientId);
+
+        String accountInfo=serverName+","+username+","+password;
+        redisManager.hset(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username),clientId);
+        redisManager.hset(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId),accountInfo);
+        log.info("set account connnect: serverName:"+serverName+",username:"+username);
+        return clientId;
+    }
+
+    /**
+     * 链接账户
+     * @param serverName
+     * @param username
+     * @param password
+     * @return
+     */
+    public int setAccountConnectTradeAllowed(String serverName,int username,String password){
+        if(StringUtils.isEmpty(serverName)||StringUtils.isEmpty(password)||username==0){
+            log.error("设置链接账户,传入传入参数为空！");
+            throw new DataConflictException("设置链接账户,传入传入参数为空！");
+        }
+        Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+        if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
+            int currentClientId=(Integer)accountClientId;
+            if (ConnectLibrary.library.MT4API_IsConnect(currentClientId)) {
+                if(!TraderLibrary.library.MT4API_IsTradeAllowed(currentClientId)){
+                    log.error("account is not trade Allowed!");
+                    TradeUtil.printError(currentClientId);
+                    throw new BusinessException(TradeErrorEnum.TRADE_NOT_ALLOWED.message());
+                }
+                /*已连接 直接返回*/
+                log.info("client already connected!");
+                return currentClientId;
+            }else {
+                /*未连接 删除数据 避免冗余*/
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(currentClientId));
+            }
+        }
+        int clientId = connectionService.getUserConnectWithConnectCallback(serverName,username,password);
+        if(clientId==0){
+            // 初始化失败！
+            log.error("client init error !");
+            throw new BusinessException("client init error !");
+        }
+        if(!TraderLibrary.library.MT4API_IsTradeAllowed(clientId)){
+            log.error("MT4API_IsTradeAllowed false!");
+            TradeUtil.printError(clientId);
+            throw new BusinessException(TradeErrorEnum.TRADE_NOT_ALLOWED.message());
         }
         /*设置订单结果回调*/
         /*TraderLibrary.library.MT4API_SetOrderNotifyEventHandler(clientId, orderNotifyCallbackImpl, clientId);*/
@@ -214,6 +271,82 @@ public class AccountInfoService {
             log.info("connection already break!");
         }
         return true;
+    }
+
+
+    /**
+     * 根据跟随关系初始化链接(只能初始化已连接的)
+     */
+    public void initConnectByFollowRelation(){
+
+        Map<Object, Object> allFollows= redisManager.hmget(RedisConstant.H_ACCOUNT_FOLLOW_RELATION);
+        if(allFollows==null){
+            log.info("no follow relations");
+            return;
+        }
+        log.info("------------------initConnectByFollowRelation begin-----------------"+new Date().getTime());
+
+        Object clientId;
+        Object accountInfo="";
+        String userName="";
+        String account[];
+        int isConnect=0;
+        for(Object key:allFollows.keySet()){
+            try {
+                userName=(String)key;
+                clientId= redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
+                if(ObjectUtils.isEmpty(clientId)){
+                    continue;
+                }
+                accountInfo=redisManager.hget(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
+                if(ObjectUtils.isEmpty(accountInfo)){
+                    redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
+                    continue;
+                }
+                account=String.valueOf(accountInfo).split(",");
+                log.info("------------------initConnectByFollowRelation  begin-siganl："+userName);
+                /*初始化信号源*/
+                isConnect=setSignalMonitor(account[0],Integer.parseInt(account[1]),account[2]);
+                if(isConnect<=0){
+                    log.error("signal connect fail,signalMtAccId:"+userName);
+                }
+
+                Object object= redisManager.hget(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(userName));
+                if(ObjectUtils.isEmpty(object)){
+                    log.info("信号源无跟随关系 signalMtAccId:"+userName);
+                    continue;
+                }
+                JSONObject followJson=(JSONObject)object;
+                for(String jsonKey:followJson.keySet()){
+                    try {
+                        /*循环连接跟随账号*/
+                        userName=jsonKey;
+                        clientId= redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
+                        if(ObjectUtils.isEmpty(clientId)){
+                            continue;
+                        }
+                        accountInfo=redisManager.hget(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
+                        if(ObjectUtils.isEmpty(accountInfo)){
+                            redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
+                            continue;
+                        }
+                        account=String.valueOf(accountInfo).split(",");
+                        isConnect=setAccountConnectTradeAllowed(account[0],Integer.parseInt(account[1]),account[2]);
+                        if(isConnect<=0){
+                            log.error("user connect fail,userMtAccId:"+userName);
+                        }
+                    }catch (Exception e){
+                        log.error(e.getMessage(),e);
+                        continue;
+                    }
+                }
+                log.info("------------------initConnectByFollowRelation end-siganl："+userName);
+            }catch (Exception e){
+                log.error(e.getMessage(),e);
+                continue;
+            }
+        }
+        log.info("------------------initConnectByFollowRelation end-----------------"+new Date().getTime());
     }
 
     /**
