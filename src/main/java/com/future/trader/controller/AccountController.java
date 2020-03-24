@@ -48,8 +48,8 @@ public class AccountController {
 
         if(conditionMap==null||conditionMap.get("serverName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
-            log.error("setAccountConnnect null params!");
-            throw new DataConflictException("setAccountConnnect null params!");
+            log.error("setAccountConnect null params!");
+            throw new DataConflictException("setAccountConnect null params!");
         }
 
         String serverName=String.valueOf(conditionMap.get("serverName"));
@@ -67,8 +67,8 @@ public class AccountController {
 
         if(conditionMap==null||conditionMap.get("serverName")==null
                 ||conditionMap.get("username")==null||conditionMap.get("password")==null){
-            log.error("setAccountConnnect null params!");
-            throw new DataConflictException("setAccountConnnect null params!");
+            log.error("setAccountConnect null params!");
+            throw new DataConflictException("setAccountConnect null params!");
         }
 
         String serverName=String.valueOf(conditionMap.get("serverName"));

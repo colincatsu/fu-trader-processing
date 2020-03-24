@@ -86,6 +86,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                         log.error("信号源订单开仓 跟单规则匹配失败,跟随账号："+followName);
                         dataJson.put("errorCode",isMatch);
                         redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,dataJson);
+                        continue;
                     }
                     //开仓
                     int result= followTradeOpen(followRecord,followName,comment);
@@ -94,6 +95,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                         log.error("信号源订单开仓 处理失败,跟随账号："+followName);
                         dataJson.put("errorCode",result);
                         redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,dataJson);
+                        continue;
                     }
                     //保存正在交易状态
                     redisManager.hset(RedisConstant.H_ORDER_FOLLOW_TRADING,comment,new Date().getTime());
@@ -104,7 +106,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                     Object followOrder=redisManager.hget(RedisConstant.H_ORDER_FOLLOW_ORDER_RELATION,comment);
                     if(ObjectUtils.isEmpty(followOrder)){
                         log.error("用户："+followName+",未跟随该订单 order："+tradeRecord.order);
-                        return;
+                        continue;
                     }
                     log.info("信号源订单平仓,跟随账号："+followName);
                     // 跟单逻辑
@@ -115,6 +117,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                         log.error("信号源订单关闭 跟单规则匹配失败,跟随账号："+followName);
                         dataJson.put("errorCode",isMatch);
                         redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,dataJson);
+                        continue;
                     }
                     // 平仓
                     String symbol=new String(tradeRecord.symbol).trim();
@@ -124,6 +127,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                         log.error("信号源订单平仓 处理失败,跟随账号："+followName);
                         dataJson.put("errorCode",result);
                         redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,dataJson);
+                        continue;
                     }
                     //保存正在关闭状态
                     redisManager.hset(RedisConstant.H_ORDER_FOLLOW_CLOSING,comment,new Date().getTime());

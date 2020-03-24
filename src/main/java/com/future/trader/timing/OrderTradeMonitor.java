@@ -50,7 +50,7 @@ public class OrderTradeMonitor {
                     log.info(followJson.toJSONString());
                     followJson.put("errorCode", TradeErrorEnum.TRADE_TIMEOUT.code());
                     //交易超时 写入错误日志
-                    redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,followJson.toJSONString());
+                    redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,followJson);
                     //删除 正在交易记录和缓存
                     redisManager.hdel(RedisConstant.H_ORDER_FOLLOW_TRADING_DATA,String.valueOf(key));;
                     redisManager.hdel(RedisConstant.H_ORDER_FOLLOW_TRADING,String.valueOf(key));
@@ -72,7 +72,7 @@ public class OrderTradeMonitor {
                     log.info(followJson.toJSONString());
                     followJson.put("errorCode", TradeErrorEnum.TRADE_TIMEOUT.code());
                     //交易超时 写入错误日志
-                    redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,followJson.toJSONString());
+                    redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,followJson);
                     //删除 正在交易记录和缓存
                     redisManager.hdel(RedisConstant.H_ORDER_FOLLOW_CLOSING_DATA,String.valueOf(key));;
                     redisManager.hdel(RedisConstant.H_ORDER_FOLLOW_CLOSING,String.valueOf(key));

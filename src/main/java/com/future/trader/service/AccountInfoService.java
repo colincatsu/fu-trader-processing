@@ -290,26 +290,29 @@ public class AccountInfoService {
         Object accountInfo="";
         String userName="";
         String account[];
-        int isConnect=0;
+        int connectClientId=0;
         for(Object key:allFollows.keySet()){
             try {
                 userName=(String)key;
                 clientId= redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
-                if(ObjectUtils.isEmpty(clientId)){
+                if(ObjectUtils.isEmpty(clientId)||(Integer)clientId==0){
+                    /*该信号源已经停止监听 此处不做处理*/
                     continue;
                 }
                 accountInfo=redisManager.hget(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
                 if(ObjectUtils.isEmpty(accountInfo)){
+                    /*该信号源监听数据不完整*/
                     redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
                     continue;
                 }
                 account=String.valueOf(accountInfo).split(",");
-                log.info("------------------initConnectByFollowRelation  begin-siganl："+userName);
+                log.info("------------------initConnectByFollowRelation  begin-signal："+userName);
                 /*初始化信号源*/
-                isConnect=setSignalMonitor(account[0],Integer.parseInt(account[1]),account[2]);
-                if(isConnect<=0){
+                connectClientId=setSignalMonitor(account[0],Integer.parseInt(account[1]),account[2]);
+                if(connectClientId<=0){
                     log.error("signal connect fail,signalMtAccId:"+userName);
                 }
+                log.info("------------------initConnectByFollowRelation connect end-signal："+userName);
 
                 Object object= redisManager.hget(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(userName));
                 if(ObjectUtils.isEmpty(object)){
@@ -321,18 +324,22 @@ public class AccountInfoService {
                     try {
                         /*循环连接跟随账号*/
                         userName=jsonKey;
+                        log.info("------------------initConnectByFollowRelation  begin-siganl-follow："+userName);
+
                         clientId= redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
-                        if(ObjectUtils.isEmpty(clientId)){
+                        if(ObjectUtils.isEmpty(clientId)||(Integer)clientId==0){
+                            /*没有clientId 无法获取用户账户信息 此处不做处理*/
                             continue;
                         }
                         accountInfo=redisManager.hget(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
                         if(ObjectUtils.isEmpty(accountInfo)){
+                            /*该用户监听数据不完整 */
                             redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
                             continue;
                         }
                         account=String.valueOf(accountInfo).split(",");
-                        isConnect=setAccountConnectTradeAllowed(account[0],Integer.parseInt(account[1]),account[2]);
-                        if(isConnect<=0){
+                        connectClientId=setAccountConnectTradeAllowed(account[0],Integer.parseInt(account[1]),account[2]);
+                        if(connectClientId<=0){
                             log.error("user connect fail,userMtAccId:"+userName);
                         }
                     }catch (Exception e){
@@ -340,7 +347,7 @@ public class AccountInfoService {
                         continue;
                     }
                 }
-                log.info("------------------initConnectByFollowRelation end-siganl："+userName);
+                log.info("------------------initConnectByFollowRelation end-signal");
             }catch (Exception e){
                 log.error(e.getMessage(),e);
                 continue;
