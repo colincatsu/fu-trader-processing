@@ -47,6 +47,14 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
         }else {
             log.info("signal order:"+info.getOrder());
         }
+
+        /*监测到的信号源订单入库*/
+        JSONObject orderJson=new JSONObject();
+        orderJson.put("followOrder",JSONObject.parseObject(JSON.toJSONString(info)));
+        orderJson.put("signalName",info.getLogin());
+        orderJson.put("orderAction",orderUpdateEventInfo.updateAction.getIntValue());
+        redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_SIGNAL_ORDER,orderJson);
+
         /*查询跟单信息*/
         Object object= redisManager.hget(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(info.getLogin()));
         if(ObjectUtils.isEmpty(object)){

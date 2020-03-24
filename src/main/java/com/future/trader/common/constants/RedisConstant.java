@@ -24,6 +24,8 @@ public class RedisConstant {
 	/*订单 跟随订单关系*/
 	public static final String H_ORDER_FOLLOW_ORDER_RELATION="tradeOrderFollowOrderRelation";
 
+	/*订单 信号源订单*/
+	public static final String L_ORDER_FOLLOW_SIGNAL_ORDER="tradeOrderFollowSignalOrder";
 	/*订单 跟随订单信息*/
 	public static final String L_ORDER_FOLLOW_ORDERS="tradeOrderFollowOrders";
 	/*订单 跟随错误*/
