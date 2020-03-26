@@ -56,19 +56,18 @@ public class OrderInfoService {
             log.error("null input message!");
             throw new DataConflictException("null input message!");
         }
-        if(conditionMap.get("nHisTimeFrom")==null
-                ||conditionMap.get("nHisTimeTo")==null){
-            log.error("null input message!");
-            throw new DataConflictException("null input message!");
-        }
         String serverName = String.valueOf(conditionMap.get("serverName"));
         int username = Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password = String.valueOf(conditionMap.get("password"));
-        int nThreadHisTimeFrom = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeFrom")));
-        int nThreadHisTimeTo = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeTo")));
-
-        //TODO 时间段不能超过1周
-
+        int nThreadHisTimeFrom =0;
+        int nThreadHisTimeTo =0;
+        if(conditionMap.get("nHisTimeFrom")!=null){
+            nThreadHisTimeFrom = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeFrom")));
+        }
+        if(conditionMap.get("nHisTimeTo")!=null){
+            nThreadHisTimeTo = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeTo")));
+        }
+        /*时间段为0  默认查询一个月近*/
         int clientId = connectionService.getUserConnect(serverName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
         if(clientId==0){
             // 初始化失败！

@@ -1,6 +1,5 @@
 package com.future.trader.timing;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.future.trader.common.constants.RedisConstant;
 import com.future.trader.common.enums.TradeErrorEnum;

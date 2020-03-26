@@ -104,7 +104,7 @@ public class AccountInfoService {
         followJson.put(String.valueOf(followName),followRule);
         /*将跟单关系保存至redis*/
         redisManager.hset(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(signalName),followJson);
-        log.error("设置跟单关系 成功！ signalName:"+signalName+",+followName:"+followName);
+        log.info("设置跟单关系 成功！ signalName:"+signalName+",+followName:"+followName);
         return true;
     }
 
