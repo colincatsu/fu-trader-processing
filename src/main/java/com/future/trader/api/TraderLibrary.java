@@ -230,16 +230,16 @@ public interface TraderLibrary extends Library {
      * 订单通知结构体
      */
     class OrderNotifyEventInfo extends Structure {
-        public int nReqId;
-        public short nStatus;
+        public int reqId;
+        public byte status;
         public OrderProgressTypeEnum emType;
-        public OrderLibrary.NotifyRecord notifyRecord;
+        public OrderLibrary.TradeRecord tradeRecord;
         public double bid;
         public double ask;
 
         @Override
         protected List<String> getFieldOrder() {
-            return Arrays.asList(new String[]{"nReqId", "nStatus", "emType", "notifyRecord", "bid", "ask"});
+            return Arrays.asList(new String[]{"reqId", "status", "emType", "tradeRecord", "bid", "ask"});
         }
     }
 

@@ -67,15 +67,41 @@ public class OrderInfoService {
         if(conditionMap.get("nHisTimeTo")!=null){
             nThreadHisTimeTo = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeTo")));
         }
-        /*时间段为0  默认查询一个月近*/
-        int clientId = connectionService.getUserConnect(serverName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
+
+        int clientId=0;
+        boolean isConnected=false;/*是否已经链接了*/
+        if(nThreadHisTimeFrom==0||nThreadHisTimeFrom==0){
+            /*默认查询近一个月的记录*/
+            Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+            if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
+                clientId=(Integer)accountClientId;
+                if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+                    /*已连接 直接返回*/
+                    isConnected=true;
+                }else {
+                    /*未连接 删除数据 避免冗余*/
+                    redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+                    redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
+                }
+            }
+            if(!isConnected){
+                clientId=connectionService.getUserConnect(serverName,username,password);
+            }
+        }else {
+            /*时间段为0  默认查询一个月近*/
+            clientId = connectionService.getUserConnect(serverName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
+        }
+
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
             throw new BusinessException("client init error !");
         }
         List<TradeRecordInfo> list=obtainCloseOrderInfo(clientId);
-        connectionService.disConnect(clientId);
+
+        if(!isConnected){
+            connectionService.disConnect(clientId);
+        }
 
         return list;
     }
@@ -106,12 +132,22 @@ public class OrderInfoService {
         String password = String.valueOf(conditionMap.get("password"));
         int orderId = Integer.parseInt(String.valueOf(conditionMap.get("orderId")));
 
+        boolean isConnected=false;/*是否已经链接了*/
         int clientId=0;
-        Object oClientId = redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
-        if(ObjectUtils.isEmpty(oClientId)){
+        Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+        if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
+            clientId=(Integer)accountClientId;
+            if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+                /*已连接 直接返回*/
+                isConnected=true;
+            }else {
+                /*未连接 删除数据 避免冗余*/
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
+            }
+        }
+        if(!isConnected){
             clientId=connectionService.getUserConnect(serverName,username,password);
-        }else {
-            clientId=(int)oClientId;
         }
         if(clientId==0){
             // 初始化失败！
@@ -119,7 +155,10 @@ public class OrderInfoService {
             throw new BusinessException("client init error !");
         }
         TradeRecordInfo tradeRecordInfo=obtainCloseOrderInfo(clientId,orderId);
-        connectionService.disConnect(clientId);
+        if(!isConnected){
+            /*因为此次查询做的链接 需要关闭*/
+            connectionService.disConnect(clientId);
+        }
 
         return tradeRecordInfo;
     }
@@ -153,15 +192,40 @@ public class OrderInfoService {
             nThreadHisTimeTo = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeTo")));
         }
 
-        int clientId = connectionService.getUserConnect(serverName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
+        int clientId=0;
+        boolean isConnected=false;/*是否已经链接了*/
+        if(nThreadHisTimeFrom==0||nThreadHisTimeFrom==0){
+            /*默认查询近一个月的记录*/
+            Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+            if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
+                clientId=(Integer)accountClientId;
+                if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+                    /*已连接 直接返回*/
+                    isConnected=true;
+                }else {
+                    /*未连接 删除数据 避免冗余*/
+                    redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+                    redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
+                }
+            }
+            if(!isConnected){
+                clientId=connectionService.getUserConnect(serverName,username,password);
+            }
+        }else {
+            /*时间段为0  默认查询一个月近*/
+            clientId = connectionService.getUserConnect(serverName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
+        }
         if(clientId==0){
             // 初始化失败！
             log.error("client init error !");
             throw new BusinessException("client init error !");
         }
         List<TradeRecordInfo> list=obtainOpenOrderInfo(clientId);
-        connectionService.disConnect(clientId);
 
+        if(!isConnected){
+            /*新打开的链接需要关闭*/
+            connectionService.disConnect(clientId);
+        }
         return list;
     }
 
@@ -191,12 +255,22 @@ public class OrderInfoService {
         String password = String.valueOf(conditionMap.get("password"));
         int orderId = Integer.parseInt(String.valueOf(conditionMap.get("orderId")));
 
+        boolean isConnected=false;/*是否已经链接了*/
         int clientId=0;
-        Object oClientId = redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
-        if(ObjectUtils.isEmpty(oClientId)){
+        Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+        if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
+            clientId=(Integer)accountClientId;
+            if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+                /*已连接 直接返回*/
+                isConnected=true;
+            }else {
+                /*未连接 删除数据 避免冗余*/
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
+            }
+        }
+        if(!isConnected){
             clientId=connectionService.getUserConnect(serverName,username,password);
-        }else {
-            clientId=(int)oClientId;
         }
         if(clientId==0){
             // 初始化失败！
@@ -204,7 +278,10 @@ public class OrderInfoService {
             throw new BusinessException("client init error !");
         }
         TradeRecordInfo info=obtainOpenOrderInfo(clientId,orderId);
-        connectionService.disConnect(clientId);
+        if(!isConnected){
+            /*因为此次查询做的链接 需要关闭*/
+            connectionService.disConnect(clientId);
+        }
 
         return info;
     }
@@ -214,6 +291,7 @@ public class OrderInfoService {
      * @param clientId
      */
     public List<TradeRecordInfo> obtainCloseOrderInfo(int clientId) {
+
         IntByReference closeOrderCount = new IntByReference();
         OrderLibrary.library.MT4API_GetCloseOrdersCount(clientId, closeOrderCount);
         int closeCountInt = closeOrderCount.getValue();
@@ -222,7 +300,6 @@ public class OrderInfoService {
         if(closeCountInt==0){
             return null;
         }
-        closeCountInt=1;
 
         List<TradeRecordInfo> recordInfoList=new ArrayList<>();
         IntByReference closeCount = new IntByReference(closeCountInt);

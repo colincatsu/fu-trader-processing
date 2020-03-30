@@ -18,7 +18,7 @@ public class OrderNotifyCallbackImpl implements OrderNotifyCallback {
         log.info("订单回调通知");
         log.info("订单回调通知 clientId:"+clientId);
         log.info("订单回调通知 type:"+orderNotifyEventInfo.emType.getIntValue());
-        log.info("订单回调通知 status:"+orderNotifyEventInfo.nStatus);
+        log.info("订单回调通知 status:"+orderNotifyEventInfo.status);
         log.info("订单回调通知 info:"+ JSON.toJSONString(orderNotifyEventInfo));
         /*TradeRecordInfo info = TradeUtil.convertTradeRecords(orderNotifyEventInfo.notifyRecord);
         log.info("订单回调通知 order:"+ JSON.toJSONString(info));

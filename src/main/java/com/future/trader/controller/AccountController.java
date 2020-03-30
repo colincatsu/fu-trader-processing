@@ -2,6 +2,7 @@ package com.future.trader.controller;
 
 
 import com.alibaba.fastjson.JSON;
+import com.future.trader.bean.AccountInfo;
 import com.future.trader.common.exception.DataConflictException;
 import com.future.trader.common.result.RequestParams;
 import com.future.trader.service.AccountInfoService;
@@ -131,5 +132,23 @@ public class AccountController {
         int followName=Integer.parseInt(String.valueOf(conditionMap.get("followName")));
 
         return accountInfoService.removeAccountFollowRelation(signalName,followName);
+    }
+
+    //取消账户跟随关系
+    @RequestMapping(value= "/getAccountInfo",method= RequestMethod.POST)
+    public @ResponseBody
+    AccountInfo getAccountInfo(@RequestBody RequestParams<Map> requestParams){
+        // 获取请求参数
+        Map conditionMap = requestParams.getParams();
+        if(conditionMap==null||conditionMap.get("serverName")==null
+                ||conditionMap.get("username")==null||conditionMap.get("password")==null){
+            log.error("setAccountConnect null params!");
+            throw new DataConflictException("setAccountConnect null params!");
+        }
+        String serverName=String.valueOf(conditionMap.get("serverName"));
+        int username=Integer.parseInt(String.valueOf(conditionMap.get("username")));
+        String password=String.valueOf(conditionMap.get("password"));
+
+        return accountInfoService.getAccountInfo(serverName,username,password);
     }
 }

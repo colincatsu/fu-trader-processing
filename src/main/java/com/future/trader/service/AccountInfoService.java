@@ -3,6 +3,7 @@ package com.future.trader.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.future.trader.api.*;
+import com.future.trader.bean.AccountInfo;
 import com.future.trader.common.constants.RedisConstant;
 import com.future.trader.common.enums.TradeErrorEnum;
 import com.future.trader.common.exception.BusinessException;
@@ -357,10 +358,53 @@ public class AccountInfoService {
     }
 
     /**
+     * 查询用户账户信息
+     * @param serverName
+     * @param username
+     * @param password
+     * @return
+     */
+    public AccountInfo getAccountInfo(String serverName,int username,String password){
+        if(StringUtils.isEmpty(serverName)||StringUtils.isEmpty(password)||username==0){
+            log.error("查询用户账户信息,传入传入参数为空！");
+            throw new DataConflictException("查询用户账户信息,传入传入参数为空！");
+        }
+        boolean isConnected=false;/*是否已经链接了*/
+        int clientId=0;
+        Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+        if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
+            clientId=(Integer)accountClientId;
+            if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+                /*已连接 直接返回*/
+                isConnected=true;
+            }else {
+                /*未连接 删除数据 避免冗余*/
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
+            }
+        }
+        if(!isConnected){
+            clientId=connectionService.getUserConnect(serverName,username,password);
+        }
+        if(clientId==0){
+            // 初始化失败！
+            log.error("client init error !");
+            throw new BusinessException("client init error !");
+        }
+        AccountInfo info=obtainAccoutInfo(clientId);
+        if(!isConnected){
+            /*因为此次查询做的链接 需要关闭*/
+            connectionService.disConnect(clientId);
+        }
+
+        return info;
+    }
+
+    /**
      * 获取账户信息
      * @param clientId
      */
-    public void obtainAccoutInfo(int clientId) {
+    public AccountInfo obtainAccoutInfo(int clientId) {
         IntByReference account = new IntByReference();
         AccountInfoLibrary.library.MT4API_GetUser(clientId, account);
         System.out.println("get user " + account.getValue());
@@ -371,15 +415,15 @@ public class AccountInfoService {
         System.out.println("get user name : " + new String(name));
 
         //获取账号资金情况
-        DoubleByReference banlan = new DoubleByReference();
+        DoubleByReference balance = new DoubleByReference();
         DoubleByReference credit = new DoubleByReference();
         DoubleByReference margin = new DoubleByReference();
         DoubleByReference freeMargin = new DoubleByReference();
         DoubleByReference equity = new DoubleByReference();
         DoubleByReference profit = new DoubleByReference();
-        AccountInfoLibrary.library.MT4API_GetMoneyInfo(clientId, banlan, credit, margin,
+        AccountInfoLibrary.library.MT4API_GetMoneyInfo(clientId, balance, credit, margin,
                 freeMargin, equity, profit);
-        System.out.println("余额 ：" + banlan.getValue());
+        System.out.println("余额 ：" + balance.getValue());
         System.out.println("信用 ：" + credit.getValue());
         System.out.println("占用保证金 ：" + margin.getValue());
         System.out.println("可用保证金 ：" + freeMargin.getValue());
@@ -390,7 +434,17 @@ public class AccountInfoService {
         AccountInfoLibrary.library.MT4API_GetLeverage(clientId, leverage);
         System.out.println("杠杆比例：" + leverage.getValue());
 
-        System.out.println();
+        AccountInfo accountInfo=new AccountInfo();
+        accountInfo.setUser(account.getValue());
+        accountInfo.setName(new String(name));
+        accountInfo.setBalance(balance.getValue());
+        accountInfo.setCredit(credit.getValue());
+        accountInfo.setMargin(margin.getValue());
+        accountInfo.setFreeMargin(freeMargin.getValue());
+        accountInfo.setEquity(equity.getValue());
+        accountInfo.setProfit(profit.getValue());
+        accountInfo.setLeverage(leverage.getValue());
+        return accountInfo;
     }
 
     /**
