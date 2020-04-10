@@ -61,6 +61,8 @@ public class AccountInfoService {
         if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
             int currentClientId=(Integer)accountClientId;
             if (ConnectLibrary.library.MT4API_IsConnect(currentClientId)) {
+                /*重新设置信号源监听*/
+                TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(currentClientId, signalOrderUpdateCallbackImpl, currentClientId);
                 /*已连接 直接返回*/
                 log.info("client already connected!");
                 return currentClientId;
@@ -374,7 +376,7 @@ public class AccountInfoService {
         Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
         if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
             clientId=(Integer)accountClientId;
-            if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+            if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
                 /*已连接 直接返回*/
                 isConnected=true;
             }else {

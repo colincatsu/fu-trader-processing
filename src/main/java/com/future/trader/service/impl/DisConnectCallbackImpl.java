@@ -30,7 +30,7 @@ public class DisConnectCallbackImpl implements DisConnectCallback {
     public void onDisConnect(int clientId) {
         log.info("onDisConnect callback clientId:"+clientId);
         /*被动销毁的clientId需要重新链接*/
-        reConnect(clientId,1,3);
+        reConnect(clientId,1,5);
     }
 
     /**

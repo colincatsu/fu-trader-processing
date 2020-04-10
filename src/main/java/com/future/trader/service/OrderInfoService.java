@@ -70,12 +70,12 @@ public class OrderInfoService {
 
         int clientId=0;
         boolean isConnected=false;/*是否已经链接了*/
+        /*默认查询近一个月的记录*/
         if(nThreadHisTimeFrom==0||nThreadHisTimeFrom==0){
-            /*默认查询近一个月的记录*/
             Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
             if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
                 clientId=(Integer)accountClientId;
-                if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+                if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
                     /*已连接 直接返回*/
                     isConnected=true;
                 }else {
@@ -137,7 +137,7 @@ public class OrderInfoService {
         Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
         if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
             clientId=(Integer)accountClientId;
-            if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+            if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
                 /*已连接 直接返回*/
                 isConnected=true;
             }else {
@@ -194,26 +194,26 @@ public class OrderInfoService {
 
         int clientId=0;
         boolean isConnected=false;/*是否已经链接了*/
-        if(nThreadHisTimeFrom==0||nThreadHisTimeFrom==0){
-            /*默认查询近一个月的记录*/
-            Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
-            if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
-                clientId=(Integer)accountClientId;
-                if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
-                    /*已连接 直接返回*/
-                    isConnected=true;
-                }else {
-                    /*未连接 删除数据 避免冗余*/
-                    redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
-                    redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
-                }
+        /*默认查询近一个月的记录*/
+        Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+        if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
+            clientId=(Integer)accountClientId;
+            if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+                /*已连接 直接返回*/
+                isConnected=true;
+            }else {
+                /*未连接 删除数据 避免冗余*/
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
             }
-            if(!isConnected){
+        }
+        if(!isConnected){
+            if(nThreadHisTimeFrom==0||nThreadHisTimeFrom==0){
                 clientId=connectionService.getUserConnect(serverName,username,password);
+            }else {
+                /*时间段为0  默认查询一个月近*/
+                clientId = connectionService.getUserConnect(serverName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
             }
-        }else {
-            /*时间段为0  默认查询一个月近*/
-            clientId = connectionService.getUserConnect(serverName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
         }
         if(clientId==0){
             // 初始化失败！
@@ -260,7 +260,7 @@ public class OrderInfoService {
         Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
         if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
             clientId=(Integer)accountClientId;
-            if (!ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+            if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
                 /*已连接 直接返回*/
                 isConnected=true;
             }else {
@@ -319,6 +319,8 @@ public class OrderInfoService {
                         + "volume : " + closetradeRecord.volume + ","
                         + "open_time : " + closetradeRecord.open_time + ","
                         + "open_price : " + closetradeRecord.open_price + ","
+                        + "close_time : " + closetradeRecord.close_time + ","
+                        + "close_price : " + closetradeRecord.close_price + ","
                         + "state : " + closetradeRecord.state + ","
                         + "stoploss : " + closetradeRecord.stoploss + ","
                         + "takeprofit : " + closetradeRecord.takeprofit + ","
