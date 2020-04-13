@@ -25,6 +25,7 @@ import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +49,7 @@ public class OrderInfoService {
 
         if(conditionMap==null){
             log.error("null input message!");
+            return null;
         }else {
             log.info(JSON.toJSONString(conditionMap));
         }
@@ -59,37 +61,36 @@ public class OrderInfoService {
         String serverName = String.valueOf(conditionMap.get("serverName"));
         int username = Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password = String.valueOf(conditionMap.get("password"));
-        int nThreadHisTimeFrom =0;
-        int nThreadHisTimeTo =0;
+        /*默认查询近一个月的记录*/
+        int nThreadHisTimeFrom =(int)((new Date().getTime()-((long)(30 * 24) * 3600000))/1000);
+        int nThreadHisTimeTo =(int)(new Date().getTime()/1000);
         if(conditionMap.get("nHisTimeFrom")!=null){
             nThreadHisTimeFrom = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeFrom")));
         }
         if(conditionMap.get("nHisTimeTo")!=null){
             nThreadHisTimeTo = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeTo")));
         }
-
+        if(nThreadHisTimeFrom>nThreadHisTimeTo){
+            log.error("error input time!");
+            return null;
+        }
         int clientId=0;
         boolean isConnected=false;/*是否已经链接了*/
-        /*默认查询近一个月的记录*/
-        if(nThreadHisTimeFrom==0||nThreadHisTimeFrom==0){
-            Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
-            if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
-                clientId=(Integer)accountClientId;
-                if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
-                    /*已连接 直接返回*/
-                    isConnected=true;
-                }else {
-                    /*未连接 删除数据 避免冗余*/
-                    redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
-                    redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
-                }
+
+        Object accountClientId=redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+        if(!ObjectUtils.isEmpty(accountClientId)&&(Integer)accountClientId>0){
+            clientId=(Integer)accountClientId;
+            if (ConnectLibrary.library.MT4API_IsConnect(clientId)) {
+                /*已连接 直接返回*/
+                isConnected=true;
+            }else {
+                /*未连接 删除数据 避免冗余*/
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username));
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
             }
-            if(!isConnected){
-                clientId=connectionService.getUserConnect(serverName,username,password);
-            }
-        }else {
-            /*时间段为0  默认查询一个月近*/
-            clientId = connectionService.getUserConnect(serverName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
+        }
+        if(!isConnected){
+            clientId=connectionService.getUserConnect(serverName,username,password);
         }
 
         if(clientId==0){
@@ -97,7 +98,7 @@ public class OrderInfoService {
             log.error("client init error !");
             throw new BusinessException("client init error !");
         }
-        List<TradeRecordInfo> list=obtainCloseOrderInfo(clientId);
+        List<TradeRecordInfo> list=obtainHistoryOrderInfo(clientId,nThreadHisTimeFrom,nThreadHisTimeTo);
 
         if(!isConnected){
             connectionService.disConnect(clientId);
@@ -208,12 +209,7 @@ public class OrderInfoService {
             }
         }
         if(!isConnected){
-            if(nThreadHisTimeFrom==0||nThreadHisTimeFrom==0){
-                clientId=connectionService.getUserConnect(serverName,username,password);
-            }else {
-                /*时间段为0  默认查询一个月近*/
-                clientId = connectionService.getUserConnect(serverName,username,password,nThreadHisTimeFrom,nThreadHisTimeTo);
-            }
+            clientId=connectionService.getUserConnect(serverName,username,password);
         }
         if(clientId==0){
             // 初始化失败！
@@ -305,13 +301,63 @@ public class OrderInfoService {
         IntByReference closeCount = new IntByReference(closeCountInt);
         OrderLibrary.TradeRecord b = new OrderLibrary.TradeRecord();
         OrderLibrary.TradeRecord[] closeReference = (OrderLibrary.TradeRecord[]) b.toArray(closeCountInt);
-        boolean closeSuccess = OrderLibrary.library.MT4API_GetCloseOrders(clientId, closeReference, closeCount);
-        if (closeSuccess) {
-            log.info("获取已关闭交易的订单列表：" + closeSuccess + "，已关闭订单个数：" + closeCountInt);
+        boolean isSuccess = OrderLibrary.library.MT4API_GetCloseOrders(clientId, closeReference, closeCount);
+        if (isSuccess) {
+            log.info("获取已关闭交易的订单列表：" + isSuccess + "，已关闭订单个数：" + closeCountInt);
 
             for (int i = 0; i < closeCountInt; i++) {
                 OrderLibrary.TradeRecord closetradeRecord = closeReference[i];
                 log.info("订单信息："
+                        + "order : " + closetradeRecord.order + ","
+                        + "login : " + closetradeRecord.login + ","
+                        + "symbol : " + new String(closetradeRecord.symbol) + ","
+                        + "digits : " + closetradeRecord.digits + ","
+                        + "volume : " + closetradeRecord.volume + ","
+                        + "open_time : " + closetradeRecord.open_time + ","
+                        + "open_price : " + closetradeRecord.open_price + ","
+                        + "close_time : " + closetradeRecord.close_time + ","
+                        + "close_price : " + closetradeRecord.close_price + ","
+                        + "state : " + closetradeRecord.state + ","
+                        + "stoploss : " + closetradeRecord.stoploss + ","
+                        + "takeprofit : " + closetradeRecord.takeprofit + ","
+                );
+                TradeRecordInfo info =TradeUtil.convertTradeRecords(closetradeRecord);
+                recordInfoList.add(info);
+            }
+        } else {
+            TradeUtil.printError(clientId);
+        }
+        return recordInfoList;
+    }
+
+    /**
+     * 根据时间段获取历史订单信息
+     * @param clientId
+     * @param nHisTimeFrom
+     * @param nHisTimeTo
+     * @return
+     */
+    public List<TradeRecordInfo> obtainHistoryOrderInfo(int clientId,int nHisTimeFrom,int nHisTimeTo) {
+        IntByReference closeOrderCount = new IntByReference();
+        OrderLibrary.library.MT4API_GetTradeHistoryCount(clientId,nHisTimeFrom,nHisTimeTo, closeOrderCount);
+        int closeCountInt = closeOrderCount.getValue();
+        System.out.println("时间段内已关闭订单个数：" + closeCountInt);
+
+        if(closeCountInt==0){
+            return null;
+        }
+        List<TradeRecordInfo> recordInfoList=new ArrayList<>();
+        IntByReference closeCount = new IntByReference(closeCountInt);
+        OrderLibrary.TradeRecord b = new OrderLibrary.TradeRecord();
+        OrderLibrary.TradeRecord[] closeReference = (OrderLibrary.TradeRecord[]) b.toArray(closeCountInt);
+        boolean isSuccess = OrderLibrary.library.MT4API_DownloadTradeHistory(clientId, closeReference, closeCount);
+        if (isSuccess) {
+            System.out.println("获取已关闭交易的订单列表：" + isSuccess + "，已关闭订单个数：" + closeCountInt);
+
+            for (int i = 0; i < closeCountInt; i++) {
+                OrderLibrary.TradeRecord closetradeRecord = closeReference[i];
+
+                System.out.println("订单信息："
                         + "order : " + closetradeRecord.order + ","
                         + "login : " + closetradeRecord.login + ","
                         + "symbol : " + new String(closetradeRecord.symbol) + ","

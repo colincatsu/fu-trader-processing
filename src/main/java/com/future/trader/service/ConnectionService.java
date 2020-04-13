@@ -146,6 +146,7 @@ public class ConnectionService {
      * @param nThreadHisTimeTo   初始获取历史订单的结束时间
      * @return
      */
+    @Deprecated
     public int getUserConnect(String serverName,int username,String password,int nThreadHisTimeFrom,int nThreadHisTimeTo){
         int clientId = InstanceLibrary.library.MT4API_Create();
         log.info("clientId : " + clientId);
