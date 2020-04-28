@@ -513,7 +513,7 @@ public class OrderInfoService {
                 TimeUnit.MILLISECONDS.sleep(100);
                 getQuoteTimes++;
             }
-            if(getQuoteTimes>=10){
+            if(getQuoteTimes>=20){
                 log.error("getQuoteInfo false!");
                 return TradeErrorEnum.ACC_QUOTE_GET_ERROR.code();
             }
@@ -676,7 +676,7 @@ public class OrderInfoService {
             while (!QuoteLibrary.library.MT4API_GetQuote(clientId, symbol, quoteInfo) && getQuoteTimes<5) {
                 TimeUnit.MILLISECONDS.sleep(100);
             }
-            if(getQuoteTimes>=10){
+            if(getQuoteTimes>=20){
                 log.error("getQuoteInfo false!");
                 return TradeErrorEnum.ACC_QUOTE_GET_ERROR.code();
             }
