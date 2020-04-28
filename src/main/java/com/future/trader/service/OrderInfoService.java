@@ -62,7 +62,7 @@ public class OrderInfoService {
         int username = Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password = String.valueOf(conditionMap.get("password"));
         /*默认查询近一个月的记录*/
-        int nThreadHisTimeFrom =(int)((new Date().getTime()-((long)(30 * 24) * 3600000))/1000);
+        int nThreadHisTimeFrom =(int)((new Date().getTime()-((long)(7 * 24) * 3600000))/1000);
         int nThreadHisTimeTo =(int)(new Date().getTime()/1000);
         if(conditionMap.get("nHisTimeFrom")!=null){
             nThreadHisTimeFrom = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeFrom")));
@@ -506,10 +506,16 @@ public class OrderInfoService {
             return TradeErrorEnum.TRADE_NOT_ALLOWED.code();
         }
         //循环获取行情信息，直到获取到最新的行情信息
+        int getQuoteTimes=1;
         QuoteLibrary.QuoteEventInfo.ByReference quoteInfo = new QuoteLibrary.QuoteEventInfo.ByReference();
         try {
-            while (!QuoteLibrary.library.MT4API_GetQuote(clientId, new String(tradeRecord.symbol), quoteInfo)) {
+            while (!QuoteLibrary.library.MT4API_GetQuote(clientId, new String(tradeRecord.symbol), quoteInfo)&&getQuoteTimes<5) {
                 TimeUnit.MILLISECONDS.sleep(100);
+                getQuoteTimes++;
+            }
+            if(getQuoteTimes>=10){
+                log.error("getQuoteInfo false!");
+                return TradeErrorEnum.ACC_QUOTE_GET_ERROR.code();
             }
         } catch (Exception e) {
             log.error(e.getMessage(),e);
@@ -664,10 +670,15 @@ public class OrderInfoService {
         }
 
         //循环获取行情信息，直到获取到最新的行情信息
+        int getQuoteTimes=1;
         QuoteLibrary.QuoteEventInfo.ByReference quoteInfo = new QuoteLibrary.QuoteEventInfo.ByReference();
         try {
-            while (!QuoteLibrary.library.MT4API_GetQuote(clientId, symbol, quoteInfo)) {
+            while (!QuoteLibrary.library.MT4API_GetQuote(clientId, symbol, quoteInfo) && getQuoteTimes<5) {
                 TimeUnit.MILLISECONDS.sleep(100);
+            }
+            if(getQuoteTimes>=10){
+                log.error("getQuoteInfo false!");
+                return TradeErrorEnum.ACC_QUOTE_GET_ERROR.code();
             }
         } catch (Exception e) {
             log.error(e.getMessage(),e);

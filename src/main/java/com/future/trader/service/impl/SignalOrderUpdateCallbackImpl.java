@@ -162,6 +162,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
         }
         int clientId=(int)accountClientId;
         /*异步关闭订单*/
+        log.info("跟单信息：begin!");
         int sendCode= orderInfoService.sendOrderCloseAsync(clientId,followOrderId,symbol,volume);
         if (sendCode==TradeErrorEnum.SUCCESS.code()) {
             log.info("跟单信息：close success! isSend,followOrderid:"+followOrderId);
@@ -191,6 +192,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
             return TradeErrorEnum.ORDER_MAGIC_ERROR.code();
         }
         //调用重复交易
+        log.info("跟单信息：begin!");
         int tradeResult=orderInfoService.orderTradeRetrySyn(clientId,tradeRecord,magic,comment,1,5);
         if(tradeResult==TradeErrorEnum.SUCCESS.code()){
             log.info("跟单信息：success! isTrade");
