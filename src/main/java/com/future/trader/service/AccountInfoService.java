@@ -80,6 +80,7 @@ public class AccountInfoService {
         }
         /*设置信号源监听*/
         TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, signalOrderUpdateCallbackImpl, clientId);
+
         log.info("set signal monitor account: serverName:"+serverName+",username:"+username);
 
         String accountInfo=serverName+","+username+","+password;
@@ -224,6 +225,12 @@ public class AccountInfoService {
         /*设置跟随订单更新回调*/
         TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, followOrderUpdateCallbackImpl, clientId);
 
+        /*FollowOrderUpdateCallback followOrderUpdateCallbackTest=new FollowOrderUpdateCallbackTest();
+        TraderLibrary.library.MT4API_SetOrderUpdateEventHandler(clientId, followOrderUpdateCallbackTest, clientId);*/
+
+        /*OrderNotifyCallback orderNotifyCallbackTest=new OrderNotifyCallbackTest();
+        TraderLibrary.library.MT4API_SetOrderNotifyEventHandler(clientId,orderNotifyCallbackTest,clientId);*/
+
         String accountInfo=serverName+","+username+","+password;
         redisManager.hset(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(username),clientId);
         redisManager.hset(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId),accountInfo);
@@ -295,8 +302,9 @@ public class AccountInfoService {
         String account[];
         int connectClientId=0;
         for(Object key:allFollows.keySet()){
+            userName=(String)key;
+            log.info("------------------initConnectByFollowRelation  begin-signals："+userName);
             try {
-                userName=(String)key;
                 clientId= redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
                 if(ObjectUtils.isEmpty(clientId)||(Integer)clientId==0){
                     /*该信号源已经停止监听 此处不做处理*/
@@ -315,46 +323,46 @@ public class AccountInfoService {
                 if(connectClientId<=0){
                     log.error("signal connect fail,signalMtAccId:"+userName);
                 }
-                log.info("------------------initConnectByFollowRelation connect end-signal："+userName);
-
-                Object object= redisManager.hget(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(userName));
-                if(ObjectUtils.isEmpty(object)){
-                    log.info("信号源无跟随关系 signalMtAccId:"+userName);
-                    continue;
-                }
-                JSONObject followJson=(JSONObject)object;
-                for(String jsonKey:followJson.keySet()){
-                    try {
-                        /*循环连接跟随账号*/
-                        userName=jsonKey;
-                        log.info("------------------initConnectByFollowRelation  begin-siganl-follow："+userName);
-
-                        clientId= redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
-                        if(ObjectUtils.isEmpty(clientId)||(Integer)clientId==0){
-                            /*没有clientId 无法获取用户账户信息 此处不做处理*/
-                            continue;
-                        }
-                        accountInfo=redisManager.hget(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
-                        if(ObjectUtils.isEmpty(accountInfo)){
-                            /*该用户监听数据不完整 */
-                            redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
-                            continue;
-                        }
-                        account=String.valueOf(accountInfo).split(",");
-                        connectClientId=setAccountConnectTradeAllowed(account[0],Integer.parseInt(account[1]),account[2]);
-                        if(connectClientId<=0){
-                            log.error("user connect fail,userMtAccId:"+userName);
-                        }
-                    }catch (Exception e){
-                        log.error(e.getMessage(),e);
-                        continue;
-                    }
-                }
-                log.info("------------------initConnectByFollowRelation end-signal");
+                log.info("------------------initConnectByFollowRelation  end-signal："+userName);
             }catch (Exception e){
                 log.error(e.getMessage(),e);
+            }
+            Object object= redisManager.hget(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(userName));
+            if(ObjectUtils.isEmpty(object)){
+                log.info("信号源无跟随关系 signalMtAccId:"+userName);
                 continue;
             }
+            JSONObject followJson=(JSONObject)object;
+            for(String jsonKey:followJson.keySet()){
+                try {
+                    /*循环连接跟随账号*/
+                    userName=jsonKey;
+                    log.info("------------------initConnectByFollowRelation  begin-siganl-follow："+userName);
+
+                    clientId= redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
+                    if(ObjectUtils.isEmpty(clientId)||(Integer)clientId==0){
+                        /*没有clientId 无法获取用户账户信息 此处不做处理*/
+                        continue;
+                    }
+                    accountInfo=redisManager.hget(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
+                    if(ObjectUtils.isEmpty(accountInfo)){
+                        /*该用户监听数据不完整 */
+                        redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
+                        continue;
+                    }
+                    account=String.valueOf(accountInfo).split(",");
+                    connectClientId=setAccountConnectTradeAllowed(account[0],Integer.parseInt(account[1]),account[2]);
+                    if(connectClientId<=0){
+                        log.error("user connect fail,userMtAccId:"+userName);
+                    }
+                    log.info("------------------initConnectByFollowRelation  end-siganl-follow："+userName);
+                }catch (Exception e){
+                    log.error(e.getMessage(),e);
+                    continue;
+                }
+            }
+            log.info("------------------initConnectByFollowRelation end-signals");
+
         }
         log.info("------------------initConnectByFollowRelation end-----------------"+new Date().getTime());
     }
@@ -425,16 +433,16 @@ public class AccountInfoService {
         DoubleByReference profit = new DoubleByReference();
         AccountInfoLibrary.library.MT4API_GetMoneyInfo(clientId, balance, credit, margin,
                 freeMargin, equity, profit);
-        System.out.println("余额 ：" + balance.getValue());
-        System.out.println("信用 ：" + credit.getValue());
-        System.out.println("占用保证金 ：" + margin.getValue());
-        System.out.println("可用保证金 ：" + freeMargin.getValue());
-        System.out.println("净值 ：" + equity.getValue());
-        System.out.println("浮动盈亏 ：" + profit.getValue());
+        log.info("余额 ：" + balance.getValue());
+        log.info("信用 ：" + credit.getValue());
+        log.info("占用保证金 ：" + margin.getValue());
+        log.info("可用保证金 ：" + freeMargin.getValue());
+        log.info("净值 ：" + equity.getValue());
+        log.info("浮动盈亏 ：" + profit.getValue());
 
         IntByReference leverage = new IntByReference();
         AccountInfoLibrary.library.MT4API_GetLeverage(clientId, leverage);
-        System.out.println("杠杆比例：" + leverage.getValue());
+        log.info("杠杆比例：" + leverage.getValue());
 
         AccountInfo accountInfo=new AccountInfo();
         accountInfo.setUser(account.getValue());

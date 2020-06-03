@@ -42,11 +42,11 @@ public class OrderTradeMonitor {
         for(Object key:tradingOrders.keySet()){
             try {
                 long vTime=(long)redisManager.hget(RedisConstant.H_ORDER_FOLLOW_TRADING,String.valueOf(key));
-                //超过1分钟 就认为交易失败
-                if(time-vTime>60000){
+                //超过10分钟 就认为交易失败
+                if(time-vTime>600000){
                     Object followData=redisManager.hget(RedisConstant.H_ORDER_FOLLOW_TRADING_DATA,String.valueOf(key));
                     JSONObject followJson=(JSONObject)followData;
-                    log.info(followJson.toJSONString());
+                    log.info("open 超时:"+followJson.toJSONString());
                     followJson.put("errorCode", TradeErrorEnum.TRADE_TIMEOUT.code());
                     //交易超时 写入错误日志
                     redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,followJson);
@@ -64,11 +64,11 @@ public class OrderTradeMonitor {
         for(Object key:closingOrders.keySet()){
             try {
                 long vTime=(long)redisManager.hget(RedisConstant.H_ORDER_FOLLOW_CLOSING,String.valueOf(key));
-                //超过1分钟 就认为交易失败
-                if(time-vTime>60000){
+                //超过10分钟 就认为交易失败
+                if(time-vTime>600000){
                     Object followData=redisManager.hget(RedisConstant.H_ORDER_FOLLOW_CLOSING_DATA,String.valueOf(key));
                     JSONObject followJson=(JSONObject)followData;
-                    log.info(followJson.toJSONString());
+                    log.info("close 超时:"+followJson.toJSONString());
                     followJson.put("errorCode", TradeErrorEnum.TRADE_TIMEOUT.code());
                     //交易超时 写入错误日志
                     redisManager.lSet(RedisConstant.L_ORDER_FOLLOW_ERROR_DATA,followJson);

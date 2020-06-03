@@ -108,7 +108,7 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
                         log.error("用户："+followName+",未跟随该订单 order："+tradeRecord.order);
                         continue;
                     }
-                    log.info("信号源订单平仓,跟随账号："+followName);
+                    log.info("信号源订单平仓,跟随账号："+followName+",跟随信号源订单 order："+tradeRecord.order);
                     // 跟单逻辑
                     OrderLibrary.TradeRecord.ByReference followRecord = new OrderLibrary.TradeRecord.ByReference();
                     int isMatch= orderInfoService.followOpenLogic(tradeRecord,followRecord,followJson.getJSONObject(jsonKey));

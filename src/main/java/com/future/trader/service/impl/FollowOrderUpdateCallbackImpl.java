@@ -35,11 +35,11 @@ public class FollowOrderUpdateCallbackImpl implements FollowOrderUpdateCallback 
         //校验是否是自己跟随订单
         String comment=info.getComment();
         if(StringUtils.isEmpty(comment)){
-            log.info("用户自主交易订单 order:"+info.getOrder());
+            log.info("用户自主交易订单 user:"+info.getLogin()+",order:"+info.getOrder());
             return;
         }
         if(!TradeUtil.checkMagic(comment,info.magic)){
-            log.info("用户自主交易订单 order:"+info.getOrder());
+            log.info("用户自主交易订单 user:"+info.getLogin()+",order:"+info.getOrder());
             return;
         }
         if (OrderUpdateActionEnum.OUA_PositionOpen.getIntValue() == orderUpdateEventInfo.updateAction.ordinal()) {
