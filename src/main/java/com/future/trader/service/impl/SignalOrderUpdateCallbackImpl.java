@@ -37,12 +37,17 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
     public void onUpdate(TraderLibrary.OrderUpdateEventInfo orderUpdateEventInfo, int clientId) {
 
         TradeRecordInfo info =TradeUtil.convertTradeRecords(orderUpdateEventInfo.tradeRecord);
+
+        log.info("====================");
         log.info("信号源订单更新回调，clientId：" + clientId);
+        log.info("账号："+info.getLogin());
+        log.info("单号："+info.getOrder());
         log.info("orderUpdateAction : " + orderUpdateEventInfo.updateAction.ordinal());
         log.info("orderInfo : " + JSON.toJSONString(info));
+        log.info("====================");
 
         if(info.getMagic()==OrderConstant.ORDER_FOLLOW_MAGIC){
-            log.error("follow order:"+info.getOrder());
+            log.error("follow order return:"+info.getOrder());
             return;
         }else {
             log.info("signal order:"+info.getOrder());
@@ -161,6 +166,21 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
             return TradeErrorEnum.ACC_DIS_CONNECT.code();
         }
         int clientId=(int)accountClientId;
+
+        /*装换产品symbol  有些产品时带.的*/
+        symbol=symbol.substring(0,symbol.indexOf("."));
+        Object accountInfo= redisManager.hget(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
+        if(ObjectUtils.isEmpty(accountInfo)){
+            log.error("用户连接信息不完整："+followName);
+            return TradeErrorEnum.ACC_CONNECT_INFO_MISS.code();
+        }
+        String[] accounts=String.valueOf(accountInfo).split(",");
+        Object slaveServer= redisManager.hget(RedisConstant.H_SERVER_SLAVE_INFO,String.valueOf(accounts[0]));
+        if(!ObjectUtils.isEmpty(slaveServer)){
+            String slaveServerName=String.valueOf(slaveServer);
+            symbol=symbol+slaveServerName.substring(slaveServerName.indexOf("."));
+        }
+
         /*异步关闭订单*/
         log.info("跟单信息：begin!");
         int sendCode= orderInfoService.sendOrderCloseAsync(clientId,followOrderId,symbol,volume);
@@ -191,6 +211,23 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
         if(magic<=0){
             return TradeErrorEnum.ORDER_MAGIC_ERROR.code();
         }
+
+        /*装换产品symbol  有些产品时带.的*/
+        String symbol=new String(tradeRecord.symbol);
+        symbol=symbol.substring(0,symbol.indexOf("."));
+        Object accountInfo= redisManager.hget(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
+        if(ObjectUtils.isEmpty(accountInfo)){
+            log.error("用户连接信息不完整："+followName);
+            return TradeErrorEnum.ACC_CONNECT_INFO_MISS.code();
+        }
+        String[] accounts=String.valueOf(accountInfo).split(",");
+        Object slaveServer= redisManager.hget(RedisConstant.H_SERVER_SLAVE_INFO,String.valueOf(accounts[0]));
+        if(!ObjectUtils.isEmpty(slaveServer)){
+            String slaveServerName=String.valueOf(slaveServer);
+            symbol=symbol+slaveServerName.substring(slaveServerName.indexOf("."));
+        }
+        tradeRecord.symbol = symbol.getBytes();
+
         //调用重复交易
         log.info("跟单信息：begin!");
         int tradeResult=orderInfoService.orderTradeRetrySyn(clientId,tradeRecord,magic,comment,1,5);

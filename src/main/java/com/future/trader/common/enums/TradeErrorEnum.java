@@ -12,6 +12,7 @@ public enum TradeErrorEnum {
     FAILURE(1, "失败"),
     ACC_DIS_CONNECT(11, "用户未连接"),
     ACC_QUOTE_GET_ERROR(12, "获取行情信息"),
+    ACC_CONNECT_INFO_MISS(13, "用户连接信息缺失"),
     TRADE_TIMEOUT(21, "交易超时"),
     TRADE_NOT_ALLOWED(22, "账户不允许交易"),
     TRADE_PARAM_NULL_ERROR(23, "参数为空"),

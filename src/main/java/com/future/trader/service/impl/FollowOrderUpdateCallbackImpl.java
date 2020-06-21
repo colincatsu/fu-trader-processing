@@ -27,10 +27,14 @@ public class FollowOrderUpdateCallbackImpl implements FollowOrderUpdateCallback 
     @Override
     public void onUpdate(TraderLibrary.OrderUpdateEventInfo orderUpdateEventInfo, int clientId) {
 
+        log.info("--------------------");
         log.info("跟随订单更新回调，clientId：" + clientId);
-        log.info("orderUpdateAction : " + orderUpdateEventInfo.updateAction.ordinal());
         TradeRecordInfo info =TradeUtil.convertTradeRecords(orderUpdateEventInfo.tradeRecord);
+        log.info("账号："+info.getLogin());
+        log.info("单号："+info.getOrder());
+        log.info("orderUpdateAction : " + orderUpdateEventInfo.updateAction.ordinal());
         log.info("orderInfo : " + JSON.toJSONString(info));
+        log.info("--------------------");
 
         //校验是否是自己跟随订单
         String comment=info.getComment();

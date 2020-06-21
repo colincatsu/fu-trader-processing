@@ -31,4 +31,6 @@ public class RedisConstant {
 	/*订单 跟随错误*/
 	public static final String L_ORDER_FOLLOW_ERROR_DATA="tradeOrderFollowErrorData";
 
+	/*服务器 服务器主从管理保存*/
+	public static final String H_SERVER_SLAVE_INFO="serverSlaveInfo";
 }

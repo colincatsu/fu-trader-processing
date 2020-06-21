@@ -1,6 +1,8 @@
 package com.future.trader.common.config;
 
+import com.future.trader.service.AccountInfoService;
 import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,8 +14,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class TradeDisposableBean implements DisposableBean {
 
+    @Autowired
+    AccountInfoService accountInfoService;
+
     @Override
     public void destroy() throws Exception {
-        System.out.println("结束1");
+        System.out.println("closing------");
+        accountInfoService.disConnectByFollowRelation();
     }
 }

@@ -368,6 +368,61 @@ public class AccountInfoService {
     }
 
     /**
+     * 根据跟随关系初始化链接(只能初始化已连接的)
+     */
+    public void disConnectByFollowRelation(){
+
+        Map<Object, Object> allFollows= redisManager.hmget(RedisConstant.H_ACCOUNT_FOLLOW_RELATION);
+        if(allFollows==null){
+            log.info("no follow relations");
+            return;
+        }
+        log.info("------------------disConnectByFollowRelation begin-----------------"+new Date().getTime());
+
+        Object clientId;
+        String userName="";
+        for(Object key:allFollows.keySet()){
+            userName=(String)key;
+            log.info("------------------disConnectByFollowRelation  begin-signals："+userName);
+            try {
+                log.info("------------------disCConnectByFollowRelation  begin-signal："+userName);
+                clientId= redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
+                if(!ObjectUtils.isEmpty(clientId)&&(Integer)clientId>0){
+                    /*停止信监听*/
+                    setAccountDisConnect((Integer)clientId);
+                }
+                log.info("------------------disConnectByFollowRelation  end-signal："+userName);
+            }catch (Exception e){
+                log.error(e.getMessage(),e);
+            }
+            Object object= redisManager.hget(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(userName));
+            if(ObjectUtils.isEmpty(object)){
+                log.info("信号源无跟随关系 signalMtAccId:"+userName);
+                continue;
+            }
+            JSONObject followJson=(JSONObject)object;
+            for(String jsonKey:followJson.keySet()){
+                try {
+                    /*循环连接跟随账号*/
+                    userName=jsonKey;
+                    log.info("------------------disConnectByFollowRelation  begin-siganl-follow："+userName);
+                    clientId= redisManager.hget(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
+                    if(!ObjectUtils.isEmpty(clientId)&&(Integer)clientId>0){
+                        /*停止信监听*/
+                        setAccountDisConnect((Integer)clientId);
+                    }
+                    log.info("------------------disConnectByFollowRelation  end-siganl-follow："+userName);
+                }catch (Exception e){
+                    log.error(e.getMessage(),e);
+                    continue;
+                }
+            }
+            log.info("------------------disConnectByFollowRelation end-signals");
+        }
+        log.info("------------------disConnectByFollowRelation end-----------------"+new Date().getTime());
+    }
+
+    /**
      * 查询用户账户信息
      * @param serverName
      * @param username
