@@ -62,7 +62,7 @@ public class OrderInfoService {
         int username = Integer.parseInt(String.valueOf(conditionMap.get("username")));
         String password = String.valueOf(conditionMap.get("password"));
         /*默认查询近一个月的记录*/
-        int nThreadHisTimeFrom =(int)((new Date().getTime()-((long)(7 * 24) * 3600000))/1000);
+        int nThreadHisTimeFrom =(int)((new Date().getTime()-((long)(30 * 24) * 3600000))/1000);
         int nThreadHisTimeTo =(int)(new Date().getTime()/1000);
         if(conditionMap.get("nHisTimeFrom")!=null){
             nThreadHisTimeFrom = Integer.parseInt(String.valueOf(conditionMap.get("nHisTimeFrom")));
@@ -357,10 +357,11 @@ public class OrderInfoService {
             for (int i = 0; i < closeCountInt; i++) {
                 OrderLibrary.TradeRecord closetradeRecord = closeReference[i];
 
-                System.out.println("订单信息："
+                log.info("订单信息："
                         + "order : " + closetradeRecord.order + ","
                         + "login : " + closetradeRecord.login + ","
                         + "symbol : " + new String(closetradeRecord.symbol) + ","
+                        + "cmd : " + closetradeRecord.cmd + ","
                         + "digits : " + closetradeRecord.digits + ","
                         + "volume : " + closetradeRecord.volume + ","
                         + "open_time : " + closetradeRecord.open_time + ","
@@ -370,6 +371,7 @@ public class OrderInfoService {
                         + "state : " + closetradeRecord.state + ","
                         + "stoploss : " + closetradeRecord.stoploss + ","
                         + "takeprofit : " + closetradeRecord.takeprofit + ","
+                        + "profit : " + closetradeRecord.profit + ","
                 );
                 TradeRecordInfo info =TradeUtil.convertTradeRecords(closetradeRecord);
                 recordInfoList.add(info);
@@ -392,7 +394,7 @@ public class OrderInfoService {
         }
         OrderLibrary.TradeRecord.ByReference tradeRecord = new OrderLibrary.TradeRecord.ByReference();
         OrderLibrary.library.MT4API_GetCloseOrder(clientId, orderId, tradeRecord);
-        System.out.println("订单信息："
+        log.info("订单信息："
                 + "order : " + tradeRecord.order + ","
                 + "login : " + tradeRecord.login + ","
                 + "symbol : " + new String(tradeRecord.symbol) + ","
@@ -421,7 +423,7 @@ public class OrderInfoService {
         }
         OrderLibrary.TradeRecord.ByReference tradeRecord = new OrderLibrary.TradeRecord.ByReference();
         OrderLibrary.library.MT4API_GetOpenOrder(clientId, orderId, tradeRecord);
-        System.out.println("订单信息："
+        log.info("订单信息："
                 + "order : " + tradeRecord.order + ","
                 + "login : " + tradeRecord.login + ","
                 + "symbol : " + new String(tradeRecord.symbol) + ","

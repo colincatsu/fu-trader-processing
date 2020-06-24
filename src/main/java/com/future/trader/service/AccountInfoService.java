@@ -296,7 +296,7 @@ public class AccountInfoService {
         }
         log.info("------------------initConnectByFollowRelation begin-----------------"+new Date().getTime());
 
-        Object clientId;
+        Object clientId =new Object();
         Object accountInfo="";
         String userName="";
         String account[];
@@ -325,6 +325,8 @@ public class AccountInfoService {
                 }
                 log.info("------------------initConnectByFollowRelation  end-signal："+userName);
             }catch (Exception e){
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
+                redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
                 log.error(e.getMessage(),e);
             }
             Object object= redisManager.hget(RedisConstant.H_ACCOUNT_FOLLOW_RELATION,String.valueOf(userName));
@@ -357,6 +359,8 @@ public class AccountInfoService {
                     }
                     log.info("------------------initConnectByFollowRelation  end-siganl-follow："+userName);
                 }catch (Exception e){
+                    redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,userName);
+                    redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
                     log.error(e.getMessage(),e);
                     continue;
                 }

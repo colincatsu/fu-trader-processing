@@ -20,6 +20,6 @@ public class TradeDisposableBean implements DisposableBean {
     @Override
     public void destroy() throws Exception {
         System.out.println("closing------");
-        accountInfoService.disConnectByFollowRelation();
+        /*accountInfoService.disConnectByFollowRelation();*/
     }
 }

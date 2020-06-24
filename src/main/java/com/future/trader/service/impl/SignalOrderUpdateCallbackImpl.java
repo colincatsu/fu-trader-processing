@@ -168,7 +168,10 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
         int clientId=(int)accountClientId;
 
         /*装换产品symbol  有些产品时带.的*/
-        symbol=symbol.substring(0,symbol.indexOf("."));
+        symbol=symbol.trim();
+        if(symbol.indexOf(".")>0){
+            symbol=symbol.substring(0,symbol.indexOf("."));
+        }
         Object accountInfo= redisManager.hget(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
         if(ObjectUtils.isEmpty(accountInfo)){
             log.error("用户连接信息不完整："+followName);
@@ -213,8 +216,10 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
         }
 
         /*装换产品symbol  有些产品时带.的*/
-        String symbol=new String(tradeRecord.symbol);
-        symbol=symbol.substring(0,symbol.indexOf("."));
+        String symbol=new String(tradeRecord.symbol).trim();
+        if(symbol.indexOf(".")>0){
+            symbol=symbol.substring(0,symbol.indexOf("."));
+        }
         Object accountInfo= redisManager.hget(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
         if(ObjectUtils.isEmpty(accountInfo)){
             log.error("用户连接信息不完整："+followName);
@@ -224,7 +229,8 @@ public class SignalOrderUpdateCallbackImpl implements SignalOrderUpdateCallback 
         Object slaveServer= redisManager.hget(RedisConstant.H_SERVER_SLAVE_INFO,String.valueOf(accounts[0]));
         if(!ObjectUtils.isEmpty(slaveServer)){
             String slaveServerName=String.valueOf(slaveServer);
-            symbol=symbol+slaveServerName.substring(slaveServerName.indexOf("."));
+            String slaveServerFlag=slaveServerName.substring(slaveServerName.indexOf("."));
+            symbol=symbol+slaveServerFlag;
         }
         tradeRecord.symbol = symbol.getBytes();
 
