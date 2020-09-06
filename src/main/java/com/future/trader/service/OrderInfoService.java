@@ -101,7 +101,7 @@ public class OrderInfoService {
         List<TradeRecordInfo> list=obtainHistoryOrderInfo(clientId,nThreadHisTimeFrom,nThreadHisTimeTo);
 
         if(!isConnected){
-            connectionService.disConnect(clientId);
+            connectionService.disConnectAndDestory(clientId);
         }
 
         return list;
@@ -158,7 +158,7 @@ public class OrderInfoService {
         TradeRecordInfo tradeRecordInfo=obtainCloseOrderInfo(clientId,orderId);
         if(!isConnected){
             /*因为此次查询做的链接 需要关闭*/
-            connectionService.disConnect(clientId);
+            connectionService.disConnectAndDestory(clientId);
         }
 
         return tradeRecordInfo;
@@ -220,7 +220,7 @@ public class OrderInfoService {
 
         if(!isConnected){
             /*新打开的链接需要关闭*/
-            connectionService.disConnect(clientId);
+            connectionService.disConnectAndDestory(clientId);
         }
         return list;
     }
@@ -276,7 +276,7 @@ public class OrderInfoService {
         TradeRecordInfo info=obtainOpenOrderInfo(clientId,orderId);
         if(!isConnected){
             /*因为此次查询做的链接 需要关闭*/
-            connectionService.disConnect(clientId);
+            connectionService.disConnectAndDestory(clientId);
         }
 
         return info;

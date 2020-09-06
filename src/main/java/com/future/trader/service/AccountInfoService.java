@@ -463,7 +463,7 @@ public class AccountInfoService {
         AccountInfo info=obtainAccoutInfo(clientId);
         if(!isConnected){
             /*因为此次查询做的链接 需要关闭*/
-            connectionService.disConnect(clientId);
+            connectionService.disConnectAndDestory(clientId);
         }
 
         return info;
@@ -476,12 +476,12 @@ public class AccountInfoService {
     public AccountInfo obtainAccoutInfo(int clientId) {
         IntByReference account = new IntByReference();
         AccountInfoLibrary.library.MT4API_GetUser(clientId, account);
-        System.out.println("get user " + account.getValue());
+        log.info("get user " + account.getValue());
 
         int size = 64;
         byte[] name = new byte[size];
         AccountInfoLibrary.library.MT4API_GetUserName(clientId, name, size);
-        System.out.println("get user name : " + new String(name));
+        log.info("get user name : " + new String(name));
 
         //获取账号资金情况
         DoubleByReference balance = new DoubleByReference();

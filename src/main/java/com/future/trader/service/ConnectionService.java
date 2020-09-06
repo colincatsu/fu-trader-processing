@@ -66,6 +66,21 @@ public class ConnectionService {
     }
 
     /**
+     * 断开连接并关闭通道
+     * @param clientId
+     * @return
+     */
+    public boolean disConnectAndDestory(int clientId){
+        log.info("disConnectAndDestory ,clientId : " + clientId);
+        if (!ConnectLibrary.library.MT4API_DisConnect(clientId)) {
+            TradeUtil.printError(clientId);
+        }
+        InstanceLibrary.library.MT4API_Destory(clientId);
+        log.info("disConnectAndDestory success!");
+        return true;
+    }
+
+    /**
      * 获取连接
      * @param serverName
      * @param username
