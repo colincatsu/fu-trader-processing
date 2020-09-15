@@ -12,6 +12,8 @@ public class RedisConstant {
 	public static final String H_ACCOUNT_CONNECT_INFO="tradeAccountConnectInfo";
 	/*账户 跟随关系*/
 	public static final String H_ACCOUNT_FOLLOW_RELATION="tradeAccountFollowRelation";
+	/*账户 记录断开链接的账户信息 serverName+","+username+","+password*/
+	public static final String L_ACCOUNT_INFO_DISCONNECT="accountInfoDisconnect";
 
 	/*订单 跟随交易中*/
 	public static final String H_ORDER_FOLLOW_TRADING="tradeOrderFollowTrading";

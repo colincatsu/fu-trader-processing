@@ -57,6 +57,9 @@ public class DisConnectCallbackImpl implements DisConnectCallback {
                 redisManager.hdel(RedisConstant.H_ACCOUNT_CONNECT_INFO,String.valueOf(accounts[1]));
                 redisManager.hdel(RedisConstant.H_ACCOUNT_CLIENT_INFO,String.valueOf(clientId));
                 log.info("connection break success!");
+
+                /*保存链接失败数据 →定时重连*/
+                redisManager.lSet(RedisConstant.L_ACCOUNT_INFO_DISCONNECT,String.valueOf(accountInfo));
                 return;
             }
             //重连一次
