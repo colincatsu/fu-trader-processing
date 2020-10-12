@@ -817,7 +817,7 @@ public class OrderInfoService {
                 }
             }
 
-            //根据规则确定手数  (0 按手数比例；1 按固定金额；2 按固定手数)（最低净值/最低净值百分比）
+            //根据规则确定手数  (0 按手数比例；1 按固定金额；2 按固定手数)（最低净值/最低净值百分比） 算出来的手数要*100
             if(followType==OrderConstant.ORDER_FOLLOW_TYPE_HANDS_RATE){
                 //0 按手数比例
                 Double lots=signalRecord.volume*followAmount;
@@ -828,7 +828,7 @@ public class OrderInfoService {
                 }
             }else if(followType==OrderConstant.ORDER_FOLLOW_TYPE_AMOUNT_FIXED){
                 //1 按固定金额
-                Double lots=followAmount/signalRecord.open_price;
+                Double lots=followAmount/signalRecord.open_price*100;
                 if(lots.intValue()>=1){
                     orderSend.volume=lots.intValue();
                 }else {
@@ -836,8 +836,8 @@ public class OrderInfoService {
                 }
             }else if(followType==OrderConstant.ORDER_FOLLOW_TYPE_HANDS_FIXED){
                 //2 按固定手数
-                if(followAmount.intValue()>=1){
-                    orderSend.volume=followAmount.intValue();
+                if(followAmount.intValue()*100>=1){
+                    orderSend.volume=followAmount.intValue()*100;
                 }else {
                     orderSend.volume=1;
                 }
